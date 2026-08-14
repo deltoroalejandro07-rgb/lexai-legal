@@ -1,0 +1,31 @@
+HTML
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>LexAI - Analista Legal</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; margin: 0; }
+        header { background: #1a2a3a; color: white; padding: 20px; border-bottom: 4px solid #c9a66b; }
+        .container { max-width: 700px; margin: 50px auto; background: white; padding: 40px; border-radius: 8px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .dropzone { border: 2px dashed #c9a66b; padding: 40px; background: #fbf9f6; margin-bottom: 20px; cursor: pointer; display: block; }
+        input[type=file] { display: none; }
+        .btn { background: #1a2a3a; color: white; border: none; padding: 12px 25px; font-weight: bold; cursor: pointer; border-radius: 4px; width: 100%; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <header><h1>Lex<span>AI</span></h1></header>
+    <div class="container">
+        <h2>Analizador Avanzado de PDFs Legales</h2>
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <label class="dropzone" for="fileInput">
+                <div id="labelTxt">📄 Haz clic o arrastra un PDF legal aquí</div>
+                <input type="file" name="file" id="fileInput" accept=".pdf" required onchange="document.getElementById('labelTxt').innerText = this.files[0].name">
+            </label>
+            <button type="submit" class="btn">Analizar Documento con IA</button>
+        </form>
+    </div>
+</body>
+</html>
