@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado del Análisis - LexAI Legal</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 40px; color: #333; }
+        .container { max-width: 800px; background: white; padding: 30px; margin: 0 auto; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #1a2a3a; border-bottom: 2px solid #0066cc; padding-bottom: 10px; }
+        .section { margin-bottom: 25px; text-align: left; }
+        h3 { color: #0066cc; margin-bottom: 8px; }
+        ul { background: #f8f9fa; padding: 15px 30px; border-radius: 6px; }
+        li { margin-bottom: 5px; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 14px; white-space: pre-wrap; }
+        .btn-back { display: inline-block; margin-top: 20px; background-color: #6c757d; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; }
+        .btn-back:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚖️ Resultado del Análisis Legal</h1>
+        
+        <div class="section">
+            <h3>📄 Tipo de Documento</h3>
+            <p><strong>{{ data.tipo_documento }}</strong></p>
+        </div>
+
+        <div class="section">
+            <h3>📝 Resumen Ejecutivo</h3>
+            <p>{{ data.resumen_ejecutivo }}</p>
+        </div>
+
+        <div class="section">
+            <h3>⚠️ Puntos Críticos y Riesgos</h3>
+            <ul>
+                {% for punto in data.puntos_criticos_o_riesgos %}
+                    <li>{{ punto }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="section">
+            <h3>📅 Fechas Límite Importantes</h3>
+            <ul>
+                {% for fecha in data.fechas_limite_importantes %}
+                    <li>{{ fecha }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="section">
+            <h3>✍️ Borrador de Respuesta Preliminar</h3>
+            <pre>{{ data.borrador_respuesta_preliminar }}</pre>
+        </div>
+
+        <a href="/" class="btn-back">⬅️ Analizar otro documento</a>
+    </div>
+</body>
+</html>
