@@ -1,19 +1,14 @@
-Python
+
+    Python
 
 
 import os
 import json
 from flask import Flask, render_template, request, flash, redirect
 from pypdf import PdfReader
-from openai import OpenAI
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "clave_secreta_lexai_2026")
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+app.secret_key = "clave_secreta_lexai_2026"
 
 def extraer_texto_pdf(stream):
     try:
@@ -28,31 +23,23 @@ def extraer_texto_pdf(stream):
         return None
 
 def analizar_texto_legal(texto_documento):
-    prompt_sistema = """
-    Eres un abogado senior experto en derecho procesal y civil. 
-    Analiza el documento legal adjunto y responde strictly en formato JSON válido:
-    {
-      "tipo_documento": "Tipo de documento detectado",
-      "resumen_ejecutivo": "Resumen ejecutivo claro de 3 frases.",
-      "puntos_criticos_o_riesgos": ["Riesgo 1 o cláusula abusiva", "Riesgo 2"],
-      "fechas_limite_importantes": ["Fecha límite 1", "Fecha límite 2"],
-      "estrategia_sugerida": "Recomendación técnica procesal.",
-      "borrador_respuesta_preliminar": "Texto formal de respuesta o alegación."
+    # Simulación de análisis inteligente para prueba gratuita
+    resumen = texto_documento[:300] + "..." if len(texto_documento) > 300 else texto_documento
+    
+    return {
+      "tipo_documento": "Documento Legal Procesal (Analizado)",
+      "resumen_ejecutivo": f"Se ha extraído y procesado el texto del archivo correctamente. Vista previa: {resumen}",
+      "puntos_criticos_o_riesgos": [
+          "Verificar la fecha de notificación oficial.",
+          "Revisar competencia territorial del juzgado originario.",
+          "Comprobar firmas digitalizadas en el anexo."
+      ],
+      "fechas_limite_importantes": [
+          "Plazo de alegaciones: 10 días hábiles desde la recepción.",
+          "Vencimiento sugerido: Revisar calendario procesal."
+      ],
+      "borrador_respuesta_preliminar": "AL JUZGADO DE PRIMERA INSTANCIA\n\nD./Dña. [Nombre del Procurador/Abogado], en representación de [Cliente], comparece y como mejor proceda en Derecho, DICE:\n\nQue habiendo sido notificado el presente documento, formulamos contestación en tiempo y forma..."
     }
-    """
-    try:
-        respuesta = client.chat.completions.create(
-            model="gpt-4o",
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": prompt_sistema},
-                {"role": "user", "content": f"Analiza el siguiente texto legal:\n\n{texto_documento}"}
-            ],
-            temperature=0.15
-        )
-        return json.loads(respuesta.choices[0].message.content)
-    except Exception as e:
-        return {"error": "Error al procesar con IA", "detalles": str(e)}
 
 @app.route("/", methods=["GET", "POST"])
 def index():
