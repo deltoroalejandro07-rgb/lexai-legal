@@ -1,9 +1,5 @@
 
-    Python
-
-
 import os
-import json
 from flask import Flask, render_template, request, flash, redirect
 from pypdf import PdfReader
 
@@ -23,9 +19,7 @@ def extraer_texto_pdf(stream):
         return None
 
 def analizar_texto_legal(texto_documento):
-    # Simulación de análisis inteligente para prueba gratuita
     resumen = texto_documento[:300] + "..." if len(texto_documento) > 300 else texto_documento
-    
     return {
       "tipo_documento": "Documento Legal Procesal (Analizado)",
       "resumen_ejecutivo": f"Se ha extraído y procesado el texto del archivo correctamente. Vista previa: {resumen}",
@@ -58,4 +52,4 @@ def index():
     return render_template("index.html")
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
