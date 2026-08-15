@@ -26,33 +26,29 @@
                 
                 <div class="mb-3">
                     <label class="form-label fw-bold text-secondary"><i class="bi bi-person-badge me-1"></i> Selecciona tu rol en el documento:</label>
-                    <select name="rol_usuario" class="form-select">
+                    <select name="rol_usuario" class="class-select form-select">
                         <option value="General / Neutro" selected>General / Análisis Neutro</option>
                         
-                        <!-- SECCIÓN INMOBILIARIA Y CONTRATOS -->
-                        <optgroup label="🏠 Inmobiliario y Alquileres">
+                        <optgroup label="Inmobiliario y Alquileres">
                             <option value="Arrendatario / Inquilino">Arrendatario / Inquilino</option>
                             <option value="Arrendador / Propietario">Arrendador / Propietario</option>
                             <option value="Comprador / Cliente">Comprador / Cliente</option>
                         </optgroup>
 
-                        <!-- SECCIÓN FINANCIERA Y FACTURACIÓN -->
-                        <optgroup label="💶 Financiero y Facturación">
+                        <optgroup label="Financiero y Facturación">
                             <option value="Cliente / Pagador (Receptor)">Cliente / Pagador (Receptor de Factura)</option>
                             <option value="Proveedor / Emisor (Cobrador)">Proveedor / Emisor (Cobrador)</option>
                             <option value="Contable / Auditor Fiscal">Contable / Auditor Fiscal</option>
                         </optgroup>
 
-                        <!-- SECCIÓN LEGAL Y LABORAL -->
-                        <optgroup label="⚖️ Legal, Judicial y Laboral">
+                        <optgroup label="Legal, Judicial y Laboral">
                             <option value="Demandado / Acusado">Demandado / Acusado</option>
                             <option value="Demandante / Acusación">Demandante / Acusación</option>
                             <option value="Empleado / Trabajador">Empleado / Trabajador</option>
                             <option value="Empleador / Empresa">Empleador / Empresa</option>
                         </optgroup>
 
-                        <!-- SECCIÓN EDUCACIÓN Y FORMACIÓN -->
-                        <optgroup label="🎓 Educación y Estudio">
+                        <optgroup label="Educación y Estudio">
                             <option value="Estudiante / Opositor">Estudiante / Opositor</option>
                         </optgroup>
                     </select>
@@ -63,7 +59,6 @@
                     <input type="file" name="file" accept=".pdf" class="form-control" required>
                 </div>
 
-                <!-- OPCIÓN DE PRIVACIDAD / ANONIMIZACIÓN -->
                 <div class="form-check form-switch mb-4">
                     <input class="form-check-input" type="checkbox" name="anonimizar_datos" id="anonimizar_datos" checked>
                     <label class="form-check-label small fw-bold text-secondary" for="anonimizar_datos">
@@ -71,7 +66,6 @@
                     </label>
                 </div>
 
-                <!-- NOTA DE SEGURIDAD EN MEMORIA -->
                 <div class="security-badge mb-4">
                     <i class="bi bi-lock-fill me-1"></i> <strong>Procesamiento en RAM efímera:</strong> El archivo se procesa únicamente en la memoria volátil del servidor y se elimina de forma inmediata tras el análisis. Ningún documento queda almacenado.
                 </div>
