@@ -1,4 +1,4 @@
-import os
+  import os
 import json
 import re
 import io
@@ -47,11 +47,9 @@ def verificar_descuadre_financiero(texto_pdf):
     if len(importes) >= 3:
         for i in range(len(importes)):
             for j in range(len(importes)):
-                if i == j: 
-                    continue
+                if i == j: continue
                 for k in range(len(importes)):
-                    if k == i or k == j: 
-                        continue
+                    if k == i or k == j: continue
                     a, b, c = importes[i], importes[j], importes[k]
                     if abs((a + b) - c) > 0.05 and abs((a + b) - c) < 50000:
                         if c > (a + b) and abs(c - (a + b)) > 1:
@@ -117,50 +115,50 @@ def index():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
                 prompt_sistema = f"""
-                Eres LexAI Enterprise 2.0, auditor de precisión documental y financiera.
+                Eres LexAI Enterprise 2.0, auditor y tutor académico de precisión.
                 Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
 
-                CAPA DE AUDITORÍA SEGÚN CATEGORÍA:
+                INSTRUCCIONES ESPECÍFICAS SEGÚN CATEGORÍA:
 
-                1. CATEGORÍA "Inmobiliario/Contratos" (LAU):
-                   - Verificar fianza (Art. 36 LAU: máx 1 mes en vivienda), actualización de renta (Art. 18), duración/prórrogas (Art. 9), desistimiento (Art. 11) y reparaciones (Art. 21). Si hay vulneraciones, marcar "🔴 CRÍTICO".
+                1. CATEGORÍA "Educación/Académico" (Apuntes, libros, artículos, temarios):
+                   - NO GENERAR RIESGOS NI CLÁUSULAS CRÍTICAS.
+                   - Genera en "modulo_educacion":
+                     a) "resumen_esquematico": Un esquema jerárquico por puntos y subpuntos con la estructura lógica del tema.
+                     b) "glosario": 8 a 12 términos técnicos/clave con sus definiciones precisas.
+                     c) "preguntas_tipo_test": Entre 8 y 12 preguntas tipo test académicas con 4 opciones (opciones: ["A) ...", "B) ...", "C) ...", "D) ..."]), indicando la "respuesta_correcta" (letra exacta) y una "explicacion_detallada" justificando la opción correcta y descartando las erróneas.
+                   - Deja "puntos_criticos_con_riesgo" VACÍO [].
 
-                2. CATEGORÍA "Financiero/Facturación":
-                   - REGLA MATEMÁTICA IMPERATIVA: Suma MENTALMENTE y OBLIGATORIAMENTE la Base Imponible + IVA / Impuestos - Retenciones (IRPF).
-                   - Si la suma calculada NO COINCIDE exactamente con el TOTAL A PAGAR que figura en la factura, DEBES GENERAR OBLIGATORIAMENTE UN PUNTO "🔴 CRÍTICO: Error Matemático / Descuadre en Total a Pagar" indicando la diferencia exacta en euros.
-                   - EVALUACIÓN OBLIGATORIA DE RIESGOS: SIEMPRE debes incluir al menos 2-4 puntos en "puntos_criticos_con_riesgo" evaluando:
-                     * Exactitud de cálculos y suma de partidas.
-                     * Datos fiscales completos (NIF/CIF emisor y cliente).
-                     * Plazos de pago / Vencimiento y recargos por demora.
-                     * Conceptos facturados y retenciones aplicadas.
+                2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
+                   - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
 
                 ESTRUCTURA DE RESPUESTA REQUERIDA (JSON VÁLIDO):
                 {{
-                  "categoria_documento": "Legal/Judicial | Inmobiliario/Contratos | Financiero/Facturación | Recursos Humanos | Salud/Seguros | Educación/Académico | General",
-                  "tipo_documento": "Nombre exacto del tipo de archivo",
-                  "resumen_ejecutivo": "Resumen claro y riguroso adaptado al rol.",
-                  "puntos_criticos_con_riesgo": [
-                    {{
-                      "nivel": "🔴 CRÍTICO | 🟡 REVISAR | 🟢 NORMAL",
-                      "punto": "Descripción detallada de la cláusula, error matemático o hallazgo contable/legal",
-                      "pagina": "Ej: Pág. 1",
-                      "contraste_estandar": "Normativa aplicable o estándar contable/de mercado"
-                    }}
-                  ],
-                  "fechas_y_plazos_urgentes": [
-                    {{
-                      "concepto": "Descripción del plazo o vencimiento de pago",
-                      "fecha": "Fecha exacta o días",
-                      "es_urgente": true
-                    }}
-                  ],
+                  "categoria_documento": "Educación/Académico | Inmobiliario/Contratos | Financiero/Facturación | Legal/Judicial | Recursos Humanos | Salud/Seguros | General",
+                  "tipo_documento": "Tipo exacto del archivo",
+                  "resumen_ejecutivo": "Introducción o visión general del tema de estudio.",
+                  "puntos_criticos_con_riesgo": [],
                   "modulo_educacion": {{
-                    "resumen_esquematico": [],
-                    "glosario": [],
-                    "preguntas_tipo_test": []
+                    "resumen_esquematico": [
+                      "1. Tema Principal",
+                      "  1.1 Subconcepto clave",
+                      "  1.2 Detalle importante"
+                    ],
+                    "glosario": [
+                      {{"termino": "Concepto A", "definicion": "Definición técnica clara"}}
+                    ],
+                    "preguntas_tipo_test": [
+                      {{
+                        "id": 1,
+                        "pregunta": "¿Pregunta académica de opción múltiple?",
+                        "opciones": ["A) Opción 1", "B) Opción 2", "C) Opción 3", "D) Opción 4"],
+                        "respuesta_correcta": "A",
+                        "explicacion_detallada": "Explicación de por qué A es correcta y las demás no."
+                      }}
+                    ]
                   }},
-                  "salida_accionable": "Acciones sugeridas o rectificación solicitada al emisor/contraparte.",
-                  "disclaimer": "Este informe es una auditoría automatizada y no sustituye el asesoramiento contable o legal profesional."
+                  "fechas_y_plazos_urgentes": [],
+                  "salida_accionable": "Sugerencia de estudio o repaso para el estudiante.",
+                  "disclaimer": "Este material ha sido sintetizado automáticamente con fines de apoyo al estudio."
                 }}
                 """
 
@@ -192,15 +190,15 @@ def index():
                 verificacion = verificar_exactitud_datos(texto_extraido, data)
                 data["verificacion_exactitud"] = verificacion
 
-                descuadre = verificar_descuadre_financiero(texto_extraido)
-                if descuadre.get("hay_descuadre"):
-                    alerta_presente = any("descuadre" in p.get("punto", "").lower() or "error" in p.get("punto", "").lower() for p in data.get("puntos_criticos_con_riesgo", []))
-                    if not alerta_presente:
+                # Si es categoría financiera, verificar si hay descuadre numérico
+                if "Financiero" in data.get("categoria_documento", ""):
+                    descuadre = verificar_descuadre_financiero(texto_extraido)
+                    if descuadre.get("hay_descuadre"):
                         data.setdefault("puntos_criticos_con_riesgo", []).insert(0, {
                             "nivel": "🔴 CRÍTICO",
                             "punto": f"Discrepancia y error de cálculo aritmético: La suma de Base Imponible + Impuestos resulta en {descuadre['base_impuestos']}€, pero el TOTAL A PAGAR indicado en el documento es de {descuadre['total_declarado']}€ (diferencia no justificada de {descuadre['diferencia']}€).",
                             "pagina": "Pág. 1",
-                            "contraste_estandar": "Normativa de Facturación y Principios Contables (Suma de Base + Cuota de IVA)"
+                            "contraste_estandar": "Normativa de Facturación (Suma de Base + IVA)"
                         })
 
                 if anonimizar:
