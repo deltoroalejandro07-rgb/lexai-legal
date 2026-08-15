@@ -1,5 +1,5 @@
 Flask
 pypdf
-openai
-httpx
+requests
 gunicorn
+
