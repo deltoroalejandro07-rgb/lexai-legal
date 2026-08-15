@@ -57,13 +57,18 @@
             <!-- 1. RESUMEN ESQUEMÁTICO -->
             <div class="card card-custom p-4">
                 <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-diagram-3 me-2"></i>1. Resumen Esquemático del Contenido</h5>
-                <ul class="list-group list-group-flush">
+                <div class="list-group list-group-flush">
                     {% for item in data.get('modulo_educacion', {}).get('resumen_esquematico', []) %}
-                        <li class="list-group-item bg-transparent border-0 ps-0 fw-semibold text-secondary" style="font-family: monospace; font-size: 1rem;">
-                            {{ item }}
-                        </li>
+                        <div class="list-group-item bg-transparent border-0 ps-0 mb-3">
+                            {% if item is mapping %}
+                                <h6 class="fw-bold text-dark mb-1"><i class="bi bi-caret-right-fill text-primary me-1"></i> {{ item.get('titulo', '') }}</h6>
+                                <p class="text-secondary small mb-0 ps-3" style="line-height: 1.6;">{{ item.get('resumen_seccion', '') }}</p>
+                            {% else %}
+                                <span class="fw-semibold text-secondary">{{ item }}</span>
+                            {% endif %}
+                        </div>
                     {% endfor %}
-                </ul>
+                </div>
             </div>
 
             <!-- 2. GLOSARIO TÉCNICO -->
