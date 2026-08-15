@@ -1,4 +1,4 @@
-import os
+mport os
 import json
 import re
 import io
@@ -61,7 +61,7 @@ def verificar_descuadre_financiero(texto_pdf):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    data = None
+    data = {}  # <--- Inicializado como diccionario vacío para evitar errores al cargar la página por primera vez
     texto_extraído = ""
     error = None
     total_paginas = 1
@@ -118,4 +118,4 @@ def index():
     return render_template('resultado.html', data=data, error=error)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port5000)
