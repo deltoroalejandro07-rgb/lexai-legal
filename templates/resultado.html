@@ -20,16 +20,16 @@
 <body class="py-4">
     <div class="container" style="max-width: 900px;">
         
-        <!-- CABECERA DE NAVEGACIÓN -->
+        <!-- CABECERA -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <span class="badge bg-primary badge-cat me-2"><i class="bi bi-folder-fill me-1"></i> {{ data.categoria_documento }}</span>
-                <span class="badge bg-secondary badge-cat"><i class="bi bi-person-fill me-1"></i> Perspectiva: {{ data.rol_analizado }}</span>
+                <span class="badge bg-primary badge-cat me-2"><i class="bi bi-folder-fill me-1"></i> {{ data.get('categoria_documento', 'General') }}</span>
+                <span class="badge bg-secondary badge-cat"><i class="bi bi-person-fill me-1"></i> Rol: {{ data.get('rol_analizado', 'Neutro') }}</span>
             </div>
             <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Analizar otro</a>
         </div>
 
-        <h2 class="fw-bold mb-3 text-primary">{{ data.tipo_documento }}</h2>
+        <h2 class="fw-bold mb-3 text-primary">{{ data.get('tipo_documento', 'Análisis') }}</h2>
 
         <!-- AUDITORÍA DE EXACTITUD -->
         <div class="card card-custom p-3 bg-light">
@@ -41,24 +41,24 @@
                         <small class="text-muted">Contrastado deterministamente contra el texto original del PDF</small>
                     </div>
                 </div>
-                <span class="badge bg-success fs-6"><i class="bi bi-check-circle-fill me-1"></i> Exactitud: {{ data.verificacion_exactitud.score_exactitud }}%</span>
+                <span class="badge bg-success fs-6"><i class="bi bi-check-circle-fill me-1"></i> Exactitud: {{ data.get('verificacion_exactitud', {}).get('score_exactitud', 100) }}%</span>
             </div>
         </div>
 
         <!-- RESUMEN PRINCIPAL -->
         <div class="card card-custom p-4">
-            <h5 class="fw-bold mb-3"><i class="bi bi-file-text me-2"></i>{{ 'Visión General del Temario' if 'Educación' in data.categoria_documento else 'Resumen Ejecutivo y Resolución' }}</h5>
-            <p class="lead text-secondary mb-0" style="font-size: 1.05rem; line-height: 1.7;">{{ data.resumen_ejecutivo }}</p>
+            <h5 class="fw-bold mb-3"><i class="bi bi-file-text me-2"></i>Visión General / Resumen</h5>
+            <p class="lead text-secondary mb-0" style="font-size: 1.05rem; line-height: 1.7;">{{ data.get('resumen_ejecutivo', '') }}</p>
         </div>
 
-        <!-- SI ES CATEGORÍA EDUCACIÓN / ACADÉMICO -->
-        {% if 'Educación' in data.categoria_documento or data.modulo_educacion.resumen_esquematico %}
+        <!-- SECCIÓN EDUCACIÓN / ACADÉMICO -->
+        {% if 'Educación' in data.get('categoria_documento', '') or data.get('modulo_educacion', {}).get('resumen_esquematico') %}
             
             <!-- 1. RESUMEN ESQUEMÁTICO -->
             <div class="card card-custom p-4">
                 <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-diagram-3 me-2"></i>1. Resumen Esquemático del Contenido</h5>
                 <ul class="list-group list-group-flush">
-                    {% for item in data.modulo_educacion.resumen_esquematico %}
+                    {% for item in data.get('modulo_educacion', {}).get('resumen_esquematico', []) %}
                         <li class="list-group-item bg-transparent border-0 ps-0 fw-semibold text-secondary" style="font-family: monospace; font-size: 1rem;">
                             {{ item }}
                         </li>
@@ -66,15 +66,15 @@
                 </ul>
             </div>
 
-            <!-- 2. GLOSARIO DE TÉRMINOS CLAVE -->
+            <!-- 2. GLOSARIO TÉCNICO -->
             <div class="card card-custom p-4">
                 <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-book me-2"></i>2. Glosario de Conceptos Clave</h5>
                 <div class="row">
-                    {% for g in data.modulo_educacion.glosario %}
+                    {% for g in data.get('modulo_educacion', {}).get('glosario', []) %}
                         <div class="col-md-6 mb-2">
                             <div class="glosario-item">
-                                <strong class="text-dark"><i class="bi bi-bookmark-fill me-1 text-primary"></i> {{ g.termino }}:</strong>
-                                <span class="text-muted small d-block mt-1">{{ g.definicion }}</span>
+                                <strong class="text-dark"><i class="bi bi-bookmark-fill me-1 text-primary"></i> {{ g.get('termino', '') }}:</strong>
+                                <span class="text-muted small d-block mt-1">{{ g.get('definicion', '') }}</span>
                             </div>
                         </div>
                     {% endfor %}
@@ -86,35 +86,35 @@
                 <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-patch-question me-2"></i>3. Test Interactivo de Autoevaluación</h5>
                 <p class="text-muted small mb-4">Selecciona tu respuesta y despliega la solución para comprobar tu razonamiento.</p>
 
-                {% for q in data.modulo_educacion.preguntas_tipo_test %}
+                {% for q in data.get('modulo_educacion', {}).get('preguntas_tipo_test', []) %}
                     <div class="test-card">
-                        <h6 class="fw-bold text-dark mb-3">Pregunta {{ loop.index }}: {{ q.pregunta }}</h6>
+                        <h6 class="fw-bold text-dark mb-3">Pregunta {{ loop.index }}: {{ q.get('pregunta', '') }}</h6>
                         
                         <div class="mb-3">
-                            {% for op in q.opciones %}
+                            {% for op in q.get('opciones', []) %}
                                 <div class="form-check mb-2">
-                                    <input class="form-check-input" type="radio" name="pregunta_{{ q.id }}" id="q_{{ q.id }}_{{ loop.index }}">
-                                    <label class="form-check-label text-secondary" for="q_{{ q.id }}_{{ loop.index }}">
+                                    <input class="form-check-input" type="radio" name="pregunta_{{ loop.index }}" id="q_{{ loop.index }}_{{ loop.index0 }}">
+                                    <label class="form-check-label text-secondary" for="q_{{ loop.index }}_{{ loop.index0 }}">
                                         {{ op }}
                                     </label>
                                 </div>
                             {% endfor %}
                         </div>
 
-                        <!-- DESPLEGABLE CON SOLUCIÓN OCULTA -->
-                        <div class="accordion" id="accordionTest{{ loop.index }}">
+                        <!-- ACORDEÓN PARA SOLUCIÓN OCULTA -->
+                        <div class="accordion" id="acc_{{ loop.index }}">
                             <div class="accordion-item border-0">
                                 <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed btn-sm py-2 bg-light rounded text-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSol{{ loop.index }}">
+                                    <button class="accordion-button collapsed btn-sm py-2 bg-light rounded text-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#col_{{ loop.index }}">
                                         <i class="bi bi-eye-fill me-2"></i> Mostrar Solución y Explicación
                                     </button>
                                 </h2>
-                                <div id="collapseSol{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#accordionTest{{ loop.index }}">
+                                <div id="col_{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#acc_{{ loop.index }}">
                                     <div class="accordion-body bg-light border-top rounded-bottom mt-1">
                                         <div class="alert alert-success py-2 mb-2">
-                                            <strong>Respuesta Correcta: {{ q.respuesta_correcta }}</strong>
+                                            <strong>Respuesta Correcta: {{ q.get('respuesta_correcta', '') }}</strong>
                                         </div>
-                                        <p class="small text-secondary mb-0"><strong>Explicación:</strong> {{ q.explicacion_detallada }}</p>
+                                        <p class="small text-secondary mb-0"><strong>Explicación:</strong> {{ q.get('explicacion_detallada', '') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -126,19 +126,19 @@
 
         {% else %}
 
-            <!-- RIESGOS Y CLÁUSULAS PARA DOCUMENTOS LEGALES, INMOBILIARIOS Y FINANCIEROS -->
-            {% if data.puntos_criticos_con_riesgo %}
+            <!-- RIESGOS PARA OTROS DOCUMENTOS (LEGAL / FINANCIERO / CONTRATOS) -->
+            {% if data.get('puntos_criticos_con_riesgo') %}
             <div class="card card-custom p-4">
                 <h5 class="fw-bold mb-3"><i class="bi bi-shield-exclamation me-2"></i>Evaluación de Riesgos y Cláusulas Clave</h5>
-                {% for p in data.puntos_criticos_con_riesgo %}
-                    <div class="p-3 mb-3 rounded {% if 'CRÍTICO' in p.nivel %}badge-critico{% elif 'REVISAR' in p.nivel %}badge-revisar{% else %}badge-normal{% endif %}">
+                {% for p in data.get('puntos_criticos_con_riesgo', []) %}
+                    <div class="p-3 mb-3 rounded {% if 'CRÍTICO' in p.get('nivel', '') %}badge-critico{% elif 'REVISAR' in p.get('nivel', '') %}badge-revisar{% else %}badge-normal{% endif %}">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <strong class="fs-6">{{ p.nivel }}</strong>
-                            <span class="badge bg-secondary opacity-75">{{ p.pagina }}</span>
+                            <strong class="fs-6">{{ p.get('nivel', '') }}</strong>
+                            <span class="badge bg-secondary opacity-75">{{ p.get('pagina', '') }}</span>
                         </div>
-                        <p class="mb-1 fw-medium">{{ p.punto }}</p>
-                        {% if p.contraste_estandar %}
-                            <small class="d-block opacity-75"><i class="bi bi-info-circle me-1"></i>Estándar / Normativa: {{ p.contraste_estandar }}</small>
+                        <p class="mb-1 fw-medium">{{ p.get('punto', '') }}</p>
+                        {% if p.get('contraste_estandar') %}
+                            <small class="d-block opacity-75"><i class="bi bi-info-circle me-1"></i>Estándar / Normativa: {{ p.get('contraste_estandar') }}</small>
                         {% endif %}
                     </div>
                 {% endfor %}
@@ -147,13 +147,13 @@
 
         {% endif %}
 
-        <!-- RECOMENDACIÓN / SUGERENCIA FINAL -->
+        <!-- RECOMENDACIÓN FINAL -->
         <div class="card card-custom p-4 bg-primary text-white">
-            <h5 class="fw-bold mb-2"><i class="bi bi-compass me-2"></i>{{ 'Plan de Repaso Sugerido' if 'Educación' in data.categoria_documento else 'Recomendación Accionable' }}</h5>
-            <p class="mb-0">{{ data.salida_accionable }}</p>
+            <h5 class="fw-bold mb-2"><i class="bi bi-compass me-2"></i>Recomendación / Siguiente Paso</h5>
+            <p class="mb-0">{{ data.get('salida_accionable', '') }}</p>
         </div>
 
-        <p class="text-center text-muted small mt-4">{{ data.disclaimer }}</p>
+        <p class="text-center text-muted small mt-4">{{ data.get('disclaimer', '') }}</p>
 
     </div>
 
