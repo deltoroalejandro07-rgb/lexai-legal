@@ -16,6 +16,9 @@ def index():
         if file.filename == "":
             return "No se ha seleccionado ningún archivo.", 400
         
+        # Recuperar el rol del usuario opcional seleccionado en la interfaz
+        rol_usuario = request.form.get("rol_usuario", "General / Neutro")
+        
         if file:
             try:
                 api_key = os.environ.get("OPENAI_API_KEY", "").strip()
@@ -27,68 +30,78 @@ def index():
                 
                 texto_extraido = ""
                 
-                # ESTRATEGIA INTELIGENTE DE MUESTREO:
-                if total_paginas <= 20:
-                    # Si tiene 20 páginas o menos, leemos absolutamente todo
+                # Muestreo inteligente optimizado (evita timeouts)
+                if total_paginas <= 15:
                     for i in range(total_paginas):
                         texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
                 else:
-                    # Si es un documento gigante (ej: 480 páginas):
-                    # 1. Primeras 10 páginas (Encabezado, partes, hechos)
                     texto_extraido += "=== INICIO DEL DOCUMENTO (PRIMERAS PÁGINAS) ===\n"
-                    for i in range(10):
+                    for i in range(8):
                         texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
                     
-                    # 2. Muestra intermedia
-                    texto_extraido += "\n\n=== RESUMEN DE PÁGINAS INTERMEDIAS ===\n"
-                    paso = max(1, total_paginas // 5)
-                    for i in range(10, total_paginas - 10, paso):
+                    texto_extraido += "\n\n=== RESUMEN PÁGINAS INTERMEDIAS ===\n"
+                    paso = max(1, total_paginas // 4)
+                    for i in range(8, total_paginas - 8, paso):
                         texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
                     
-                    # 3. ÚLTIMAS 10 PÁGINAS (¡Donde está el fallo, la condena y las conclusiones!)
-                    texto_extraido += "\n\n=== PARTE FINAL DEL DOCUMENTO (ÚLTIMAS PÁGINAS - CRÍTICO: FALLO Y RESOLUCIÓN) ===\n"
-                    for i in range(total_paginas - 10, total_paginas):
+                    texto_extraido += "\n\n=== PARTE FINAL DEL DOCUMENTO (ÚLTIMAS PÁGINAS - RESOLUCIÓN/FALLO) ===\n"
+                    for i in range(total_paginas - 8, total_paginas):
                         texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
 
                 if not texto_extraido.strip():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
-                prompt_sistema = """
-                Eres un Analizador Universal de Documentos impulsado por IA de nivel profesional multidisciplinar.
-                Tu tarea es clasificar y analizar minuciosamente cualquier documento que recibas.
+                prompt_sistema = f"""
+                Eres LexAI Multi 2.0, una plataforma avanzada de Inteligencia Documental y Asesoría Automatizada.
+                Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
 
-                INSTRUCCIÓN CRÍTICA DE ANÁLISIS:
-                - Presta ESPECIAL ATENCIÓN a la sección "PARTE FINAL DEL DOCUMENTO", ya que allí se encuentran las conclusiones definitivas, la resolución, el fallo de la sentencia o los acuerdos finales.
-                - Garantiza que la resolución o fallo final figure de forma clara y prioritaria en el resumen ejecutivo y en los puntos críticos.
+                EVALUACIÓN POR CATEGORÍAS Y ESPECIFICACIONES:
+                1. INMOBILIARIO/CONTRATOS: Detecta cláusulas abusivas vs estándar del mercado español, calcula el coste total inicial (renta + fianza + gastos/IBI/comunidad) e identifica quién asume cada mantenimiento.
+                2. LEGAL/JUDICIAL: Prioriza la extracción del FALLO / RESOLUCIÓN y PLAZOS DE RECURSO como urgentes. Traduce lenguaje procesal a lenguaje sencillo. AÑADE UN AVISO DE QUE NO SUSTITUYE A UN ABOGADO.
+                3. FINANCIERO: Verifica que Base + IVA = Total. Destaca discrepancias o errores de cálculo y fechas de vencimiento.
+                4. RRHH: En nóminas/contratos evalúa deducciones, periodo de prueba, cláusulas de no competencia y despido.
+                5. SALUD Y SEGUROS: Traduce términos médicos a lenguaje llano. En pólizas, contrasta claramente cubierto vs excluido (carencias/límites ocultos). AÑADE AVISO DE CONSULTAR A UN MÉDICO.
+                6. EDUCACIÓN/ESTUDIO: Activa el modo didáctico con resumen esquemático, glosario de términos y 3 a 5 preguntas tipo test A/B/C/D.
 
-                Debes responder ÚNICAMENTE con un objeto JSON válido estructurado con las siguientes claves:
-                {
-                  "categoria_documento": "Categoría general (Ej: Legal/Judicial, Inmobiliario/Contratos, Financiero/Facturación, Recursos Humanos, Salud/Médico, Educación/Académico, etc.)",
-                  "tipo_documento": "Nombre exacto del documento (Ej: Sentencia Penal, Contrato de Arrendamiento, Factura, Currículum Vitae, Apuntes de Examen, Temario Máster, Informe Clínico)",
-                  "resumen_ejecutivo": "Un resumen exhaustivo, profundo y fluido adaptado a la naturaleza del documento. Explica contexto, partes involucradas, hechos probados y OBLIGATORIAMENTE EL FALLO / RESOLUCIÓN FINAL O CONCLUSIÓN.",
-                  "puntos_criticos_o_riesgos": [
-                    "Punto crítico, resolución/fallo, condena, cláusula de riesgo o hallazgo principal 1",
-                    "Punto crítico o hallazgo 2",
-                    "Punto crítico o hallazgo 3"
+                ESTRUCTURA DE RESPUESTA REQUERIDA (OBLIGATORIAMENTE JSON VÁLIDO):
+                {{
+                  "categoria_documento": "Legal/Judicial | Inmobiliario/Contratos | Financiero/Facturación | Recursos Humanos | Salud/Seguros | Educación/Académico | General",
+                  "tipo_documento": "Nombre exacto del tipo de archivo",
+                  "resumen_ejecutivo": "Explicación fluida y rigurosa en lenguaje llano adaptada al rol seleccionado, incluyendo el fallo/resolución principal si aplica.",
+                  "puntos_criticos_con_riesgo": [
+                    {{
+                      "nivel": "🔴 CRÍTICO | 🟡 REVISAR | 🟢 NORMAL",
+                      "punto": "Descripción del hallazgo o cláusula",
+                      "pagina": "Ej: Pág. 3",
+                      "contraste_estandar": "Comparación breve con el estándar del sector/mercado"
+                    }}
                   ],
-                  "fechas_y_plazos_clave": [
-                    "Plazo procesal para recurso, vencimiento de contrato, fecha de pago o hito importante 1",
-                    "Fecha límite o hito 2"
+                  "fechas_y_plazos_urgentes": [
+                    {{
+                      "concepto": "Descripción del plazo o hito",
+                      "fecha": "Fecha exacta o plazo de días",
+                      "es_urgente": true
+                    }}
                   ],
-                  "preguntas_tipo_test": [
-                    {
-                      "pregunta": "¿Pregunta de evaluación sobre el texto?",
-                      "opciones": ["A) Opción 1", "B) Opción 2", "C) Opción 3", "D) Opción 4"],
-                      "respuesta_correcta": "Letra y opción correcta",
-                      "explicacion": "Explicación breve del motivo de la respuesta."
-                    }
-                  ],
-                  "accion_o_borrador_recomendado": "Redacta una respuesta, correo, borrador procesal de recurso/contestación o recomendación formal según el contexto del documento."
-                }
+                  "modulo_educacion": {{
+                    "resumen_esquematico": ["Punto clave 1", "Punto clave 2"],
+                    "glosario": [{{"termino": "Término", "definicion": "Explicación sencilla"}}],
+                    "preguntas_tipo_test": [
+                      {{
+                        "pregunta": "¿Pregunta sobre el texto?",
+                        "opciones": ["A) Opción 1", "B) Opción 2", "C) Opción 3", "D) Opción 4"],
+                        "respuesta_correcta": "Opción exacta",
+                        "explicacion": "Explicación didáctica"
+                      }}
+                    ]
+                  }},
+                  "salida_accionable": "Recomendación concreta de próximos pasos, lista de preguntas para la otra parte o borrador formal según el rol del usuario.",
+                  "disclaimer": "Texto legal/médico de advertencia si aplica al documento, o cadena vacía."
+                }}
 
-                REGLA ESTRICTA PARA 'preguntas_tipo_test':
-                - SI Y SOLO SI el documento es de categoría EDUCACIÓN / ACADÉMICO, GENERA entre 3 y 5 preguntas tipo test para repaso.
-                - PARA CUALQUIER OTRO TIPO DE DOCUMENTO, DEBES DEJAR ESTE ARRAY COMPLETAMENTE VACÍO: "preguntas_tipo_test": []
+                REGLAS ESTRICTAS:
+                - Incluye la etiqueta de página [Ej: Pág. X] en los puntos críticos si es identificable en el texto.
+                - Si el documento NO es Educación/Académico, deja el objeto "modulo_educacion" con arrays vacíos: {{"resumen_esquematico": [], "glosario": [], "preguntas_tipo_test": []}}.
                 """
 
                 headers = {
@@ -101,34 +114,35 @@ def index():
                     "response_format": {"type": "json_object"},
                     "messages": [
                         {"role": "system", "content": prompt_sistema},
-                        {"role": "user", "content": f"Documento a analizar ({total_paginas} páginas totales en el PDF original):\n\n{texto_extraido[:80000]}"}
+                        {"role": "user", "content": f"Documento ({total_paginas} págs.) analizado para el Rol: {rol_usuario}:\n\n{texto_extraido[:85000]}"}
                     ],
                     "temperature": 0.1
                 }
 
-                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=50)
+                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
                 response_json = response.json()
 
                 if response.status_code != 200:
-                    error_msg = response_json.get("error", {}).get("message", "Error desconocido en OpenAI")
+                    error_msg = response_json.get("error", {}).get("message", "Error en OpenAI")
                     raise Exception(f"OpenAI API Error ({response.status_code}): {error_msg}")
 
                 contenido = response_json["choices"][0]["message"]["content"]
                 data = json.loads(contenido)
-
-                data["tipo_documento"] += f" ({total_paginas} págs. - Muestreo Inicio/Fin Completo)"
+                data["tipo_documento"] += f" ({total_paginas} págs. analizadas)"
+                data["rol_analizado"] = rol_usuario
 
                 return render_template("resultado.html", data=data)
 
             except Exception as e:
                 error_data = {
                     "categoria_documento": "Error",
-                    "tipo_documento": "Error en el análisis",
-                    "resumen_ejecutivo": f"No se pudo completar el análisis. Detalle: {str(e)}",
-                    "puntos_criticos_o_riesgos": ["Revisa la configuración o la clave API."],
-                    "fechas_y_plazos_clave": ["N/A"],
-                    "preguntas_tipo_test": [],
-                    "accion_o_borrador_recomendado": "No disponible."
+                    "tipo_documento": "Error en procesamiento",
+                    "resumen_ejecutivo": f"No se pudo completar el análisis avanzado: {str(e)}",
+                    "puntos_criticos_con_riesgo": [],
+                    "fechas_y_plazos_urgentes": [],
+                    "modulo_educacion": {"resumen_esquematico": [], "glosario": [], "preguntas_tipo_test": []},
+                    "salida_accionable": "Inténtelo de nuevo o verifique la validez del archivo PDF.",
+                    "disclaimer": ""
                 }
                 return render_template("resultado.html", data=error_data)
 
