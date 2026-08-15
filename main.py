@@ -115,6 +115,9 @@ def index():
                 if not texto_extraido.strip():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
+                # Cálculo proporcional de preguntas para Educación (1 preg por cada 2-3 págs, min 8, max 100)
+                num_preguntas_test = min(100, max(8, int(total_paginas // 2.5)))
+
                 prompt_sistema = f"""
                 Eres LexAI Enterprise 2.0, auditor y tutor académico de precisión.
                 Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
@@ -125,9 +128,9 @@ def index():
                    - NO GENERAR RIESGOS NI CLÁUSULAS CRÍTICAS.
                    - Dejar "puntos_criticos_con_riesgo" VACÍO [].
                    - Genera dentro del objeto "modulo_educacion":
-                     a) "resumen_esquematico": Un esquema jerárquico por puntos y subpuntos con la estructura lógica del tema.
+                     a) "resumen_esquematico": Lista de objetos donde cada uno contenga "titulo" (ej. "1.1 Concepto") y "resumen_seccion" (resumen explicativo de 2 a 4 líneas de ese apartado concreto).
                      b) "glosario": 8 a 12 términos técnicos/clave con sus definiciones precisas (objetos con keys "termino" y "definicion").
-                     c) "preguntas_tipo_test": Entre 8 y 12 preguntas tipo test académicas con 4 opciones cada una, la "respuesta_correcta" (A, B, C o D) y una "explicacion_detallada".
+                     c) "preguntas_tipo_test": Genera EXACTAMENTE {num_preguntas_test} preguntas tipo test académicas distribuidas de forma equitativa y proporcional a lo largo de TODOS los capítulos del documento (no solo del inicio). Cada pregunta debe tener 4 opciones, la "respuesta_correcta" (A, B, C o D) y una "explicacion_detallada".
 
                 2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
                    - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
@@ -148,8 +151,7 @@ def index():
                   ],
                   "modulo_educacion": {{
                     "resumen_esquematico": [
-                      "1. Tema Principal",
-                      "  1.1 Subconcepto clave"
+                      {{"titulo": "1. Tema Principal", "resumen_seccion": "Explicación breve de 2 a 4 líneas que resuma adecuadamente lo expuesto en esta sección concreta."}}
                     ],
                     "glosario": [
                       {{"termino": "Concepto", "definicion": "Definición"}}
