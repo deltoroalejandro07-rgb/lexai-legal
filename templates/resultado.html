@@ -3,88 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análisis Inteligente de Documento - LexAI Multi</title>
+    <title>Análisis LexAI 2.0</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .card-custom { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .badge-cat { background-color: #0d6efd; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; }
-        .test-card { background-color: #f8f9fa; border-left: 4px solid #0d6efd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-        .pre-box { background-color: #212529; color: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; }
+        body { background-color: #f1f5f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .card-custom { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+        .badge-cat { background-color: #2563eb; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; }
+        .badge-rol { background-color: #475569; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; }
+        .pre-box { background-color: #0f172a; color: #f8fafc; padding: 18px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 0.9rem; }
+        .page-tag { background-color: #e2e8f0; color: #334155; font-size: 0.75rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-right: 6px; }
     </style>
 </head>
 <body class="py-5">
-    <div class="container" style="max-width: 900px;">
+    <div class="container" style="max-width: 950px;">
         
         <div class="card card-custom p-4 mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="badge-cat"><i class="bi bi-folder2-open me-1"></i> {{ data.categoria_documento if data.categoria_documento else 'Documento' }}</span>
-                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Analizar otro documento</a>
-            </div>
-
-            <h2 class="h4 text-primary fw-bold mb-3"><i class="bi bi-file-earmark-text me-2"></i>{{ data.tipo_documento }}</h2>
             
-            <!-- Resumen Ejecutivo -->
-            <div class="mb-4">
-                <h5 class="fw-bold text-secondary"><i class="bi bi-journal-text me-2"></i>Resumen Ejecutivo</h5>
-                <p class="text-dark bg-light p-3 rounded" style="line-height: 1.6;">{{ data.resumen_ejecutivo }}</p>
-            </div>
-
-            <!-- Puntos Críticos o Datos Clave -->
-            <div class="mb-4">
-                <h5 class="fw-bold text-secondary"><i class="bi bi-exclamation-triangle me-2"></i>Puntos Críticos, Cláusulas o Datos Clave</h5>
-                <ul class="list-group list-group-flush">
-                    {% for item in data.puntos_criticos_o_riesgos %}
-                        <li class="list-group-item bg-light mb-1 rounded"><i class="bi bi-check2-circle text-primary me-2"></i>{{ item }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-
-            <!-- Fechas / Vencimientos / Hitos -->
-            <div class="mb-4">
-                <h5 class="fw-bold text-secondary"><i class="bi bi-calendar-event me-2"></i>Fechas, Vencimientos u Hitos Importantes</h5>
-                <ul class="list-group list-group-flush">
-                    {% for fecha in data.fechas_y_plazos_clave %}
-                        <li class="list-group-item bg-light mb-1 rounded"><i class="bi bi-clock-history text-warning me-2"></i>{{ fecha }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-
-            <!-- Módulo Didáctico: Preguntas Tipo Test (si existen) -->
-            {% if data.preguntas_tipo_test and data.preguntas_tipo_test|length > 0 %}
-            <div class="mb-4">
-                <h5 class="fw-bold text-primary"><i class="bi bi-mortarboard me-2"></i>Evaluación / Preguntas Tipo Test de Repaso</h5>
-                <p class="text-muted small">Generadas automáticamente para estudio o autocomprobación:</p>
-                
-                {% for q in data.preguntas_tipo_test %}
-                <div class="test-card">
-                    <p class="fw-bold mb-2">{{ loop.index }}. {{ q.pregunta }}</p>
-                    <ul class="list-unstyled ms-3 mb-2">
-                        {% for opc in q.opciones %}
-                            <li class="text-secondary small mb-1">{{ opc }}</li>
-                        {% endfor %}
-                    </ul>
-                    <details class="mt-2">
-                        <summary class="btn btn-sm btn-outline-primary py-0 text-decoration-none">Ver solución</summary>
-                        <div class="mt-2 p-2 bg-white rounded border small">
-                            <strong class="text-success">Respuesta: {{ q.respuesta_correcta }}</strong>
-                            <p class="mb-0 text-muted mt-1">{{ q.explicacion }}</p>
-                        </div>
-                    </details>
+            <!-- Encabezado con Categoría y Rol -->
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                    <span class="badge-cat me-2"><i class="bi bi-folder2-open me-1"></i> {{ data.categoria_documento }}</span>
+                    <span class="badge-rol"><i class="bi bi-person-circle me-1"></i> Perspectiva: {{ data.rol_analizado }}</span>
                 </div>
-                {% endfor %}
+                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Analizar otro</a>
+            </div>
+
+            <h2 class="h4 text-primary fw-bold mb-3">{{ data.tipo_documento }}</h2>
+
+            <!-- Disclaimer Legal / Médico (si existe) -->
+            {% if data.disclaimer %}
+            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-shield-exclamation fs-4 me-3 text-warning"></i>
+                <div class="small">{{ data.disclaimer }}</div>
             </div>
             {% endif %}
 
-            <!-- Borrador / Acción Recomendada -->
-            <div class="mb-3">
-                <h5 class="fw-bold text-secondary"><i class="bi bi-pencil-square me-2"></i>Propuesta de Acción, Correo o Borrador Recomendado</h5>
-                <div class="pre-box">{{ data.accion_o_borrador_recomendado }}</div>
+            <!-- Resumen Ejecutivo -->
+            <div class="mb-4">
+                <h5 class="fw-bold text-secondary"><i class="bi bi-journal-text me-2"></i>Resumen Ejecutivo y Resolución</h5>
+                <p class="text-dark bg-white p-3 rounded border" style="line-height: 1.6;">{{ data.resumen_ejecutivo }}</p>
+            </div>
+
+            <!-- Matriz de Puntuación de Riesgo Visual -->
+            <div class="mb-4">
+                <h5 class="fw-bold text-secondary"><i class="bi bi-shield-shaded me-2"></i>Evaluación de Riesgos y Cláusulas Clave</h5>
+                <div class="list-group">
+                    {% for item in data.puntos_criticos_con_riesgo %}
+                        <div class="list-group-item list-group-item-action p-3 mb-2 rounded border-start border-4 
+                            {% if 'CRÍTICO' in item.nivel %}border-danger bg-light-subtle{% elif 'REVISAR' in item.nivel %}border-warning bg-light-subtle{% else %}border-success bg-light-subtle{% endif %}">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold {% if 'CRÍTICO' in item.nivel %}text-danger{% elif 'REVISAR' in item.nivel %}text-warning-emphasis{% else %}text-success{% endif %}">
+                                    {{ item.nivel }}
+                                </span>
+                                {% if item.pagina %}<span class="page-tag">{{ item.pagina }}</span>{% endif %}
+                            </div>
+                            <p class="mb-1 text-dark fw-medium">{{ item.punto }}</p>
+                            {% if item.contraste_estandar %}
+                                <small class="text-muted d-block mt-1"><i class="bi bi-info-circle me-1"></i><strong>Estándar de mercado:</strong> {{ item.contraste_estandar }}</small>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Fechas y Plazos Urgentes -->
+            {% if data.fechas_y_plazos_urgentes %}
+            <div class="mb-4">
+                <h5 class="fw-bold text-secondary"><i class="bi bi-alarm me-2"></i>Fechas Límite y Plazos Procesales</h5>
+                <ul class="list-group">
+                    {% for f in data.fechas_y_plazos_urgentes %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-calendar-check text-primary me-2"></i>
+                                <span>{{ f.concepto }}</span>
+                            </div>
+                            <span class="badge {% if f.es_urgente %}bg-danger{% else %}bg-secondary{% endif %} rounded-pill p-2">{{ f.fecha }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- MÓDULO EXCLUSIVO DE EDUCACIÓN -->
+            {% if data.modulo_educacion and (data.modulo_educacion.preguntas_tipo_test|length > 0 or data.modulo_educacion.glosario|length > 0) %}
+            <div class="p-3 bg-light rounded border mb-4">
+                <h5 class="fw-bold text-primary"><i class="bi bi-mortarboard me-2"></i>Módulo de Estudio y Autoevaluación</h5>
+                
+                {% if data.modulo_educacion.resumen_esquematico %}
+                    <h6 class="fw-bold mt-3 text-secondary">Esquema de Conceptos Clave:</h6>
+                    <ul>
+                        {% for pt in data.modulo_educacion.resumen_esquematico %}
+                            <li>{{ pt }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% if data.modulo_educacion.glosario %}
+                    <h6 class="fw-bold mt-3 text-secondary">Glosario de Términos:</h6>
+                    <dl class="row">
+                        {% for g in data.modulo_educacion.glosario %}
+                            <dt class="col-sm-3 text-primary">{{ g.termino }}</dt>
+                            <dd class="col-sm-9 text-muted">{{ g.definicion }}</dd>
+                        {% endfor %}
+                    </dl>
+                {% endif %}
+
+                {% if data.modulo_educacion.preguntas_tipo_test %}
+                    <h6 class="fw-bold mt-3 text-secondary">Cuestionario de Repaso:</h6>
+                    {% for q in data.modulo_educacion.preguntas_tipo_test %}
+                        <div class="card p-3 mb-2 border-0 shadow-sm">
+                            <p class="fw-bold mb-2">{{ loop.index }}. {{ q.pregunta }}</p>
+                            <ul class="list-unstyled mb-2 ms-2">
+                                {% for opc in q.opciones %}
+                                    <li class="small text-secondary mb-1">{{ opc }}</li>
+                                {% endfor %}
+                            </ul>
+                            <details>
+                                <summary class="btn btn-sm btn-outline-primary py-0">Ver Respuesta Correcta</summary>
+                                <div class="p-2 mt-2 bg-light rounded border small">
+                                    <strong class="text-success">{{ q.respuesta_correcta }}</strong>
+                                    <p class="mb-0 text-muted mt-1">{{ q.explicacion }}</p>
+                                </div>
+                            </details>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Salida Accionable -->
+            <div class="mb-2">
+                <h5 class="fw-bold text-secondary"><i class="bi bi-send-check me-2"></i>Recomendación Accionable y Propuesta</h5>
+                <div class="pre-box">{{ data.salida_accionable }}</div>
             </div>
 
         </div>
-
     </div>
 </body>
 </html>
