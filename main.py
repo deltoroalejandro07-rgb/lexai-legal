@@ -1,4 +1,3 @@
-
 import os
 import json
 from flask import Flask, render_template, request
@@ -7,8 +6,12 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# Conectar con OpenAI usando la clave guardada en Render
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Función para obtener el cliente de OpenAI de forma segura al procesar
+def get_openai_client():
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("No se encontró la variable OPENAI_API_KEY")
+    return OpenAI(api_key=api_key)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -37,7 +40,6 @@ def index():
                 if not texto_extraido.strip():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
-                # Instrucciones estrictas para la IA
                 prompt_sistema = """
                 Eres un abogado senior experto. Analiza el documento procesal/legal y responde ÚNICAMENTE con un objeto JSON válido con este formato:
                 {
@@ -56,7 +58,9 @@ def index():
                 }
                 """
 
-                # Llamada a GPT-4o
+                # Inicializar cliente OpenAI de forma limpia
+                client = get_openai_client()
+
                 response = client.chat.completions.create(
                     model="gpt-4o",
                     response_format={"type": "json_object"},
