@@ -28,14 +28,33 @@
                     <label class="form-label fw-bold text-secondary"><i class="bi bi-person-badge me-1"></i> Selecciona tu rol en el documento:</label>
                     <select name="rol_usuario" class="form-select">
                         <option value="General / Neutro" selected>General / Análisis Neutro</option>
-                        <option value="Arrendatario / Inquilino">Arrendatario / Inquilino</option>
-                        <option value="Arrendador / Propietario">Arrendador / Propietario</option>
-                        <option value="Demandado / Acusado">Demandado / Acusado</option>
-                        <option value="Demandante / Acusación">Demandante / Acusación</option>
-                        <option value="Empleado / Trabajador">Empleado / Trabajador</option>
-                        <option value="Empleador / Empresa">Empleador / Empresa</option>
-                        <option value="Comprador / Cliente">Comprador / Cliente</option>
-                        <option value="Estudiante / Opositor">Estudiante / Opositor</option>
+                        
+                        <!-- SECCIÓN INMOBILIARIA Y CONTRATOS -->
+                        <optgroup label="🏠 Inmobiliario y Alquileres">
+                            <option value="Arrendatario / Inquilino">Arrendatario / Inquilino</option>
+                            <option value="Arrendador / Propietario">Arrendador / Propietario</option>
+                            <option value="Comprador / Cliente">Comprador / Cliente</option>
+                        </optgroup>
+
+                        <!-- SECCIÓN FINANCIERA Y FACTURACIÓN -->
+                        <optgroup label="💶 Financiero y Facturación">
+                            <option value="Cliente / Pagador (Receptor)">Cliente / Pagador (Receptor de Factura)</option>
+                            <option value="Proveedor / Emisor (Cobrador)">Proveedor / Emisor (Cobrador)</option>
+                            <option value="Contable / Auditor Fiscal">Contable / Auditor Fiscal</option>
+                        </optgroup>
+
+                        <!-- SECCIÓN LEGAL Y LABORAL -->
+                        <optgroup label="⚖️ Legal, Judicial y Laboral">
+                            <option value="Demandado / Acusado">Demandado / Acusado</option>
+                            <option value="Demandante / Acusación">Demandante / Acusación</option>
+                            <option value="Empleado / Trabajador">Empleado / Trabajador</option>
+                            <option value="Empleador / Empresa">Empleador / Empresa</option>
+                        </optgroup>
+
+                        <!-- SECCIÓN EDUCACIÓN Y FORMACIÓN -->
+                        <optgroup label="🎓 Educación y Estudio">
+                            <option value="Estudiante / Opositor">Estudiante / Opositor</option>
+                        </optgroup>
                     </select>
                 </div>
 
