@@ -1,4 +1,4 @@
-import os
+ import os
 import json
 import re
 import io
@@ -63,7 +63,6 @@ def verificar_descuadre_financiero(texto_pdf):
     return {"hay_descuadre": False}
 
 def anonimizar_texto_sensible(texto):
-    if not texto: return ""
     texto = re.sub(r'\b[0-9]{8}[A-Z]\b', '***REDACTADO_DNI***', texto, flags=re.IGNORECASE)
     texto = re.sub(r'\b[XYZ][0-9]{7}[A-Z]\b', '***REDACTADO_NIE***', texto, flags=re.IGNORECASE)
     texto = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '***EMAIL_PROTEGIDO***', texto)
@@ -108,49 +107,13 @@ def index():
                     for i in range(8, total_paginas - 8, paso):
                         texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
                     
-                    texto_extraido += "\n\n=== PARTE FINAL DEL DOCUMENTO (ÚLTIMAS PÁGINAS) ===\n"
+                    texto_extraido += "\n\n=== PARTE FINAL DEL DOCUMENTO (ÚLTIMAS PÁGINAS - RESOLUCIÓN/FALLO) ===\n"
                     for i in range(total_paginas - 8, total_paginas):
                         texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
 
                 if not texto_extraido.strip():
-  target_preguntas = 100 if total_paginas > 100 else (75 if total_paginas > 60 else (50 if total_paginas > 30 else (30 if total_paginas > 15 else (15 if total_paginas > 5 else 8))))
+                    texto_extraido = "Documento escaneado sin texto digital reconocible."
 
-    prompt_sistema = f"""
-    Eres LexAI Enterprise 2.0, auditor y tutor académico de precisión.
-    Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
-
-    INSTRUCCIONES ESPECÍFICAS SEGÚN CATEGORÍA:
-
-    1. CATEGORÍA "Educación/Académico" (Apuntes, libros, artículos, temarios):
-       - NO GENERAR RIESGOS NI CLÁUSULAS CRÍTICAS.
-       - Dejar "puntos_criticos_con_riesgo" VACÍO [].
-       - Genera dentro del objeto "modulo_educacion":
-         a) "resumen_esquematico": Una lista detallada donde cada apartado incluya OBLIGATORIAMENTE un resumen explicativo de 2 o 3 frases que desarrolle la teoría y los conceptos clave.
-         b) "glosario": 8 a 12 términos técnicos/clave con sus definiciones precisas.
-         c) "preguntas_tipo_test": Genera EXACTAMENTE {target_preguntas} preguntas tipo test representativas de todo el documento, con sus 4 opciones, respuesta correcta y explicación pedagógica detallada.
-
-    2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
-       - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
-       - Dejar "modulo_educacion" con arrays vacíos.
-    """
-
-    prompt_sistema = f"""
-    Eres LexAI Enterprise 2.0, auditor y tutor académico de precisión.
-    Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
-
-    INSTRUCCIONES ESPECÍFICAS SEGÚN CATEGORÍA:
-
-    1. CATEGORÍA "Educación/Académico" (Apuntes, libros, artículos, temarios):
-       - NO GENERAR RIESGOS NI CLÁUSULAS CRÍTICAS.
-       - Dejar "puntos_criticos_con_riesgo" VACÍO [].
-       - Genera dentro del objeto "modulo_educacion":
-         a) "resumen_esquematico": Una lista detallada donde cada apartado incluya OBLIGATORIAMENTE un resumen explicativo de 2 o 3 frases que desarrolle la teoría y los conceptos clave (¡NO listes solo títulos o índices secos!).
-         b) "glosario": 8 a 12 términos técnicos/clave con sus definiciones precisas.
-         c) "preguntas_tipo_test": Genera EXACTAMENTE {target_preguntas} preguntas tipo test representativas de todo el documento, con sus 4 opciones, respuesta correcta y explicación pedagógica detallada.
-
-    2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
-       - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
-       - Dejar "modulo_educacion" con arrays vacíos.
                 prompt_sistema = f"""
                 Eres LexAI Enterprise 2.0, auditor y tutor académico de precisión.
                 Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
@@ -159,50 +122,43 @@ def index():
 
                 1. CATEGORÍA "Educación/Académico" (Apuntes, libros, artículos, temarios):
                    - NO GENERAR RIESGOS NI CLÁUSULAS CRÍTICAS.
-                   - Dejar "puntos_criticos_con_riesgo" VACÍO [].
-                   - Genera dentro del objeto "modulo_educacion":
+                   - Genera en "modulo_educacion":
                      a) "resumen_esquematico": Un esquema jerárquico por puntos y subpuntos con la estructura lógica del tema.
-                     b) "glosario": 8 a 12 términos técnicos/clave con sus definiciones precisas (objetos con keys "termino" y "definicion").
-                     c) "preguntas_tipo_test": Entre 8 y 12 preguntas tipo test académicas con 4 opciones cada una, la "respuesta_correcta" (A, B, C o D) y una "explicacion_detallada".
+                     b) "glosario": 8 a 12 términos técnicos/clave con sus definiciones precisas.
+                     c) "preguntas_tipo_test": Entre 8 y 12 preguntas tipo test académicas con 4 opciones (opciones: ["A) ...", "B) ...", "C) ...", "D) ..."]), indicando la "respuesta_correcta" (letra exacta) y una "explicacion_detallada" justificando la opción correcta y descartando las erróneas.
+                   - Deja "puntos_criticos_con_riesgo" VACÍO [].
 
                 2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
                    - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
-                   - Dejar "modulo_educacion" con arrays vacíos.
 
                 ESTRUCTURA DE RESPUESTA REQUERIDA (JSON VÁLIDO):
                 {{
                   "categoria_documento": "Educación/Académico | Inmobiliario/Contratos | Financiero/Facturación | Legal/Judicial | Recursos Humanos | Salud/Seguros | General",
                   "tipo_documento": "Tipo exacto del archivo",
-                  "resumen_ejecutivo": "Introducción o visión general del tema de estudio o documento.",
-                  "puntos_criticos_con_riesgo": [
-                    {{
-                      "nivel": "🔴 CRÍTICO | 🟡 REVISAR | 🟢 NORMAL",
-                      "punto": "Descripción detallada",
-                      "pagina": "Pág. 1",
-                      "contraste_estandar": "Normativa aplicable"
-                    }}
-                  ],
+                  "resumen_ejecutivo": "Introducción o visión general del tema de estudio.",
+                  "puntos_criticos_con_riesgo": [],
                   "modulo_educacion": {{
                     "resumen_esquematico": [
                       "1. Tema Principal",
-                      "  1.1 Subconcepto clave"
+                      "  1.1 Subconcepto clave",
+                      "  1.2 Detalle importante"
                     ],
                     "glosario": [
-                      {{"termino": "Concepto", "definicion": "Definición"}}
+                      {{"termino": "Concepto A", "definicion": "Definición técnica clara"}}
                     ],
                     "preguntas_tipo_test": [
                       {{
                         "id": 1,
-                        "pregunta": "¿Pregunta de opción múltiple?",
+                        "pregunta": "¿Pregunta académica de opción múltiple?",
                         "opciones": ["A) Opción 1", "B) Opción 2", "C) Opción 3", "D) Opción 4"],
                         "respuesta_correcta": "A",
-                        "explicacion_detallada": "Explicación académica."
+                        "explicacion_detallada": "Explicación de por qué A es correcta y las demás no."
                       }}
                     ]
                   }},
                   "fechas_y_plazos_urgentes": [],
-                  "salida_accionable": "Sugerencia de estudio o paso siguiente.",
-                  "disclaimer": "Este material ha sido procesado automáticamente con fines de asistencia profesional o educativa."
+                  "salida_accionable": "Sugerencia de estudio o repaso para el estudiante.",
+                  "disclaimer": "Este material ha sido sintetizado automáticamente con fines de apoyo al estudio."
                 }}
                 """
 
@@ -231,13 +187,10 @@ def index():
                 contenido = response_json["choices"][0]["message"]["content"]
                 data = json.loads(contenido)
                 
-                # Asegurar estructuras por defecto si no venían en el JSON
-                if "modulo_educacion" not in data:
-                    data["modulo_educacion"] = {"resumen_esquematico": [], "glosario": [], "preguntas_tipo_test": []}
-
                 verificacion = verificar_exactitud_datos(texto_extraido, data)
                 data["verificacion_exactitud"] = verificacion
 
+                # Si es categoría financiera, verificar si hay descuadre numérico
                 if "Financiero" in data.get("categoria_documento", ""):
                     descuadre = verificar_descuadre_financiero(texto_extraido)
                     if descuadre.get("hay_descuadre"):
@@ -249,10 +202,10 @@ def index():
                         })
 
                 if anonimizar:
-                    data["resumen_ejecutivo"] = anonimizar_texto_sensible(data.get("resumen_ejecutivo", ""))
-                    data["salida_accionable"] = anonimizar_texto_sensible(data.get("salida_accionable", ""))
+                    data["resumen_ejecutivo"] = anonimizar_texto_sensible(data["resumen_ejecutivo"])
+                    data["salida_accionable"] = anonimizar_texto_sensible(data["salida_accionable"])
 
-                data["tipo_documento"] = data.get("tipo_documento", "Documento") + f" ({total_paginas} págs. analizadas)"
+                data["tipo_documento"] += f" ({total_paginas} págs. analizadas)"
                 data["rol_analizado"] = rol_usuario
 
                 del file_stream
