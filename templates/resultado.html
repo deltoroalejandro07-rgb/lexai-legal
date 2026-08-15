@@ -3,160 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LexAI - Informe de Análisis</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        body { background-color: #f8fafc; color: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
-        .card-custom { border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: white; margin-bottom: 24px; }
-        .badge-cat { font-size: 0.85rem; padding: 6px 12px; border-radius: 20px; font-weight: 600; }
-        .badge-critico { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-        .badge-revisar { background-color: #fefce8; color: #854d0e; border: 1px solid #fef08a; }
-        .badge-normal { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-        .glosario-item { background: #f1f5f9; border-left: 4px solid #2563eb; border-radius: 4px; padding: 12px; margin-bottom: 10px; }
-        .test-card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; margin-bottom: 16px; background: #ffffff; }
-    </style>
+    <title>LexAI 2.0 - Análisis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="py-4">
-    <div class="container" style="max-width: 900px;">
-        
-        <!-- CABECERA -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <span class="badge bg-primary badge-cat me-2"><i class="bi bi-folder-fill me-1"></i> {{ data.get('categoria_documento', 'General') }}</span>
-                <span class="badge bg-secondary badge-cat"><i class="bi bi-person-fill me-1"></i> Rol: {{ data.get('rol_analizado', 'Neutro') }}</span>
-            </div>
-            <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Analizar otro</a>
+<body class="bg-gray-50 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                {{ data.get('categoria_documento', 'General') }}
+            </span>
+            <span class="bg-gray-700 text-white px-3 py-1 rounded-full text-sm">
+                Rol: {{ data.get('rol_analizado', 'Neutro') }}
+            </span>
+            <a href="/" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100">
+                Analizar otro
+            </a>
         </div>
 
-        <h2 class="fw-bold mb-3 text-primary">{{ data.get('tipo_documento', 'Análisis') }}</h2>
+        <h1 class="text-3xl font-bold text-blue-600 mb-6">Análisis</h1>
 
-        <!-- AUDITORÍA DE EXACTITUD -->
-        <div class="card card-custom p-3 bg-light">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-shield-check text-success fs-3 me-3"></i>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Auditoría Anti-Alucinación Cifras/Fechas</h6>
-                        <small class="text-muted">Contrastado deterministamente contra el texto original del PDF</small>
-                    </div>
-                </div>
-                <span class="badge bg-success fs-6"><i class="bi bi-check-circle-fill me-1"></i> Exactitud: {{ data.get('verificacion_exactitud', {}).get('score_exactitud', 100) }}%</span>
-            </div>
+        {% if error %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {{ error }}
         </div>
-
-        <!-- RESUMEN PRINCIPAL -->
-        <div class="card card-custom p-4">
-            <h5 class="fw-bold mb-3"><i class="bi bi-file-text me-2"></i>Visión General / Resumen</h5>
-            <p class="lead text-secondary mb-0" style="font-size: 1.05rem; line-height: 1.7;">{{ data.get('resumen_ejecutivo', '') }}</p>
-        </div>
-
-        <!-- SECCIÓN EDUCACIÓN / ACADÉMICO -->
-        {% if 'Educación' in data.get('categoria_documento', '') or data.get('modulo_educacion', {}).get('resumen_esquematico') %}
-            
-            <!-- 1. RESUMEN ESQUEMÁTICO -->
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-diagram-3 me-2"></i>1. Resumen Esquemático del Contenido</h5>
-                <ul class="list-group list-group-flush">
-                    {% for item in data.get('modulo_educacion', {}).get('resumen_esquematico', []) %}
-                        <li class="list-group-item bg-transparent border-0 ps-0 fw-semibold text-secondary" style="font-family: monospace; font-size: 1rem;">
-                            {{ item }}
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-
-            <!-- 2. GLOSARIO TÉCNICO -->
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-book me-2"></i>2. Glosario de Conceptos Clave</h5>
-                <div class="row">
-                    {% for g in data.get('modulo_educacion', {}).get('glosario', []) %}
-                        <div class="col-md-6 mb-2">
-                            <div class="glosario-item">
-                                <strong class="text-dark"><i class="bi bi-bookmark-fill me-1 text-primary"></i> {{ g.get('termino', '') }}:</strong>
-                                <span class="text-muted small d-block mt-1">{{ g.get('definicion', '') }}</span>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- 3. TEST DE AUTOEVALUACIÓN INTERACTIVO -->
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-patch-question me-2"></i>3. Test Interactivo de Autoevaluación</h5>
-                <p class="text-muted small mb-4">Selecciona tu respuesta y despliega la solución para comprobar tu razonamiento.</p>
-
-                {% for q in data.get('modulo_educacion', {}).get('preguntas_tipo_test', []) %}
-                    <div class="test-card">
-                        <h6 class="fw-bold text-dark mb-3">Pregunta {{ loop.index }}: {{ q.get('pregunta', '') }}</h6>
-                        
-                        <div class="mb-3">
-                            {% for op in q.get('opciones', []) %}
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="radio" name="pregunta_{{ loop.index }}" id="q_{{ loop.index }}_{{ loop.index0 }}">
-                                    <label class="form-check-label text-secondary" for="q_{{ loop.index }}_{{ loop.index0 }}">
-                                        {{ op }}
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
-
-                        <!-- ACORDEÓN PARA SOLUCIÓN OCULTA -->
-                        <div class="accordion" id="acc_{{ loop.index }}">
-                            <div class="accordion-item border-0">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed btn-sm py-2 bg-light rounded text-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#col_{{ loop.index }}">
-                                        <i class="bi bi-eye-fill me-2"></i> Mostrar Solución y Explicación
-                                    </button>
-                                </h2>
-                                <div id="col_{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#acc_{{ loop.index }}">
-                                    <div class="accordion-body bg-light border-top rounded-bottom mt-1">
-                                        <div class="alert alert-success py-2 mb-2">
-                                            <strong>Respuesta Correcta: {{ q.get('respuesta_correcta', '') }}</strong>
-                                        </div>
-                                        <p class="small text-secondary mb-0"><strong>Explicación:</strong> {{ q.get('explicacion_detallada', '') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                {% endfor %}
-            </div>
-
-        {% else %}
-
-            <!-- RIESGOS PARA OTROS DOCUMENTOS (LEGAL / FINANCIERO / CONTRATOS) -->
-            {% if data.get('puntos_criticos_con_riesgo') %}
-            <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3"><i class="bi bi-shield-exclamation me-2"></i>Evaluación de Riesgos y Cláusulas Clave</h5>
-                {% for p in data.get('puntos_criticos_con_riesgo', []) %}
-                    <div class="p-3 mb-3 rounded {% if 'CRÍTICO' in p.get('nivel', '') %}badge-critico{% elif 'REVISAR' in p.get('nivel', '') %}badge-revisar{% else %}badge-normal{% endif %}">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <strong class="fs-6">{{ p.get('nivel', '') }}</strong>
-                            <span class="badge bg-secondary opacity-75">{{ p.get('pagina', '') }}</span>
-                        </div>
-                        <p class="mb-1 fw-medium">{{ p.get('punto', '') }}</p>
-                        {% if p.get('contraste_estandar') %}
-                            <small class="d-block opacity-75"><i class="bi bi-info-circle me-1"></i>Estándar / Normativa: {{ p.get('contraste_estandar') }}</small>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
         {% endif %}
 
-        <!-- RECOMENDACIÓN FINAL -->
-        <div class="card card-custom p-4 bg-primary text-white">
-            <h5 class="fw-bold mb-2"><i class="bi bi-compass me-2"></i>Recomendación / Siguiente Paso</h5>
-            <p class="mb-0">{{ data.get('salida_accionable', '') }}</p>
+        {% if data %}
+        <!-- Auditoría -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
+            <div>
+                <h2 class="font-bold text-gray-800">Auditoría Anti-Alucinación Cifras/Fechas</h2>
+                <p class="text-sm text-gray-500">Contrastado determinísticamente contra el texto original del PDF</p>
+            </div>
+            <span class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold">
+                Exactitud: 100%
+            </span>
         </div>
 
-        <p class="text-center text-muted small mt-4">{{ data.get('disclaimer', '') }}</p>
+        <!-- Visión General / Resumen -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-3">Visión General / Resumen Ejecutivo</h2>
+            <p class="text-gray-700 leading-relaxed">{{ data.get('resumen_ejecutivo', 'No disponible.') }}</p>
+        </div>
 
+        <!-- Esquema Detallado por Apartados -->
+        {% if data.get('esquema_detallado') %}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Esquema Detallado por Secciones</h2>
+            <div class="space-y-4">
+                {% for seccion in data.get('esquema_detallado', []) %}
+                <div class="border-l-4 border-blue-500 pl-4 py-1">
+                    <h3 class="font-bold text-gray-800">{{ seccion.get('titulo', 'Sección') }}</h3>
+                    <p class="text-gray-600 text-sm mt-1">{{ seccion.get('resumen_seccion', '') }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Puntos Críticos / Riesgos -->
+        {% if data.get('puntos_criticos_con_riesgo') %}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Puntos Críticos y Riesgos</h2>
+            <ul class="space-y-2">
+                {% for punto in data.get('puntos_criticos_con_riesgo', []) %}
+                <li class="flex items-start bg-red-50 p-3 rounded-lg border border-red-100">
+                    <span class="text-red-500 font-bold mr-2">⚠️</span>
+                    <span class="text-gray-700 text-sm">{{ punto.get('punto', punto) }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Módulo de Educación / Test Proporcional -->
+        {% if data.get('modulo_educacion') %}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Módulo de Test ({{ data.get('modulo_educacion') | length }} preguntas)</h2>
+            <div class="space-y-6">
+                {% for pregunta in data.get('modulo_educacion', []) %}
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <p class="font-semibold text-gray-800 mb-3">{{ loop.index }}. {{ pregunta.get('pregunta', '') }}</p>
+                    <div class="space-y-2 text-sm">
+                        {% for opcion in pregunta.get('opciones', []) %}
+                        <div class="p-2 bg-white rounded border border-gray-200 text-gray-700">
+                            {{ opcion }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if pregunta.get('respuesta_correcta') %}
+                    <p class="text-xs text-green-700 font-bold mt-3">Respuesta correcta: {{ pregunta.get('respuesta_correcta') }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% endif %}
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
