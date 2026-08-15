@@ -3,115 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análisis LexAI Enterprise</title>
+    <title>LexAI - Informe de Análisis</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { background-color: #f1f5f9; font-family: 'Segoe UI', system-ui, sans-serif; }
-        .card-custom { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
-        .badge-cat { background-color: #2563eb; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; }
-        .badge-rol { background-color: #475569; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; }
-        .pre-box { background-color: #0f172a; color: #f8fafc; padding: 18px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 0.9rem; }
-        .page-tag { background-color: #e2e8f0; color: #334155; font-size: 0.75rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-right: 6px; }
-        .verification-box { background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; }
+        body { background-color: #f8fafc; color: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+        .card-custom { border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: white; margin-bottom: 24px; }
+        .badge-cat { font-size: 0.85rem; padding: 6px 12px; border-radius: 20px; font-weight: 600; }
+        .badge-critico { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .badge-revisar { background-color: #fefce8; color: #854d0e; border: 1px solid #fef08a; }
+        .badge-normal { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .glosario-item { background: #f1f5f9; border-left: 4px solid #2563eb; border-radius: 4px; padding: 12px; margin-bottom: 10px; }
+        .test-card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; margin-bottom: 16px; background: #ffffff; }
     </style>
 </head>
-<body class="py-5">
-    <div class="container" style="max-width: 950px;">
+<body class="py-4">
+    <div class="container" style="max-width: 900px;">
         
-        <div class="card card-custom p-4 mb-4">
-            
-            <!-- Encabezado con Categoría, Rol y Nivel de Exactitud -->
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <div>
-                    <span class="badge-cat me-2"><i class="bi bi-folder2-open me-1"></i> {{ data.categoria_documento }}</span>
-                    <span class="badge-rol"><i class="bi bi-person-circle me-1"></i> Perspectiva: {{ data.rol_analizado }}</span>
-                </div>
-                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Analizar otro</a>
+        <!-- CABECERA DE NAVEGACIÓN -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <span class="badge bg-primary badge-cat me-2"><i class="bi bi-folder-fill me-1"></i> {{ data.categoria_documento }}</span>
+                <span class="badge bg-secondary badge-cat"><i class="bi bi-person-fill me-1"></i> Perspectiva: {{ data.rol_analizado }}</span>
             </div>
+            <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Analizar otro</a>
+        </div>
 
-            <h2 class="h4 text-primary fw-bold mb-3">{{ data.tipo_documento }}</h2>
+        <h2 class="fw-bold mb-3 text-primary">{{ data.tipo_documento }}</h2>
 
-            <!-- CAPA 8: CAJA DE AUDITORÍA Y VERIFICACIÓN DE EXACTITUD -->
-            <div class="verification-box p-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <!-- AUDITORÍA DE EXACTITUD -->
+        <div class="card card-custom p-3 bg-light">
+            <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
-                    <i class="bi bi-patch-check-fill fs-3 text-success me-3"></i>
+                    <i class="bi bi-shield-check text-success fs-3 me-3"></i>
                     <div>
-                        <h6 class="mb-0 fw-bold text-dark">Auditoría Anti-Alucinación Cifras/Fechas</h6>
+                        <h6 class="mb-0 fw-bold">Auditoría Anti-Alucinación Cifras/Fechas</h6>
                         <small class="text-muted">Contrastado deterministamente contra el texto original del PDF</small>
                     </div>
                 </div>
-                <div class="text-end">
-                    <span class="badge bg-success fs-6 p-2"><i class="bi bi-check2-circle me-1"></i> Exactitud: {{ data.verificacion_exactitud.score_exactitud }}%</span>
-                </div>
+                <span class="badge bg-success fs-6"><i class="bi bi-check-circle-fill me-1"></i> Exactitud: {{ data.verificacion_exactitud.score_exactitud }}%</span>
+            </div>
+        </div>
+
+        <!-- RESUMEN PRINCIPAL -->
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-file-text me-2"></i>{{ 'Visión General del Temario' if 'Educación' in data.categoria_documento else 'Resumen Ejecutivo y Resolución' }}</h5>
+            <p class="lead text-secondary mb-0" style="font-size: 1.05rem; line-height: 1.7;">{{ data.resumen_ejecutivo }}</p>
+        </div>
+
+        <!-- SI ES CATEGORÍA EDUCACIÓN / ACADÉMICO -->
+        {% if 'Educación' in data.categoria_documento or data.modulo_educacion.resumen_esquematico %}
+            
+            <!-- 1. RESUMEN ESQUEMÁTICO -->
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-diagram-3 me-2"></i>1. Resumen Esquemático del Contenido</h5>
+                <ul class="list-group list-group-flush">
+                    {% for item in data.modulo_educacion.resumen_esquematico %}
+                        <li class="list-group-item bg-transparent border-0 ps-0 fw-semibold text-secondary" style="font-family: monospace; font-size: 1rem;">
+                            {{ item }}
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
 
-            <!-- Disclaimer Legal / Médico (si existe) -->
-            {% if data.disclaimer %}
-            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
-                <i class="bi bi-shield-exclamation fs-4 me-3 text-warning"></i>
-                <div class="small">{{ data.disclaimer }}</div>
-            </div>
-            {% endif %}
-
-            <!-- Resumen Ejecutivo -->
-            <div class="mb-4">
-                <h5 class="fw-bold text-secondary"><i class="bi bi-journal-text me-2"></i>Resumen Ejecutivo y Resolución</h5>
-                <p class="text-dark bg-white p-3 rounded border" style="line-height: 1.6;">{{ data.resumen_ejecutivo }}</p>
-            </div>
-
-            <!-- Matriz de Riesgo Visual con Referencias a Páginas -->
-            <div class="mb-4">
-                <h5 class="fw-bold text-secondary"><i class="bi bi-shield-shaded me-2"></i>Evaluación de Riesgos y Cláusulas Clave</h5>
-                <div class="list-group">
-                    {% for item in data.puntos_criticos_con_riesgo %}
-                        <div class="list-group-item list-group-item-action p-3 mb-2 rounded border-start border-4 
-                            {% if 'CRÍTICO' in item.nivel %}border-danger bg-light-subtle{% elif 'REVISAR' in item.nivel %}border-warning bg-light-subtle{% else %}border-success bg-light-subtle{% endif %}">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-bold {% if 'CRÍTICO' in item.nivel %}text-danger{% elif 'REVISAR' in item.nivel %}text-warning-emphasis{% else %}text-success{% endif %}">
-                                    {{ item.nivel }}
-                                </span>
-                                {% if item.pagina %}<span class="page-tag">{{ item.pagina }}</span>{% endif %}
+            <!-- 2. GLOSARIO DE TÉRMINOS CLAVE -->
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-book me-2"></i>2. Glosario de Conceptos Clave</h5>
+                <div class="row">
+                    {% for g in data.modulo_educacion.glosario %}
+                        <div class="col-md-6 mb-2">
+                            <div class="glosario-item">
+                                <strong class="text-dark"><i class="bi bi-bookmark-fill me-1 text-primary"></i> {{ g.termino }}:</strong>
+                                <span class="text-muted small d-block mt-1">{{ g.definicion }}</span>
                             </div>
-                            <p class="mb-1 text-dark fw-medium">{{ item.punto }}</p>
-                            {% if item.contraste_estandar %}
-                                <small class="text-muted d-block mt-1"><i class="bi bi-info-circle me-1"></i><strong>Estándar de mercado:</strong> {{ item.contraste_estandar }}</small>
-                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- Fechas y Plazos Urgentes -->
-            {% if data.fechas_y_plazos_urgentes %}
-            <div class="mb-4">
-                <h5 class="fw-bold text-secondary"><i class="bi bi-alarm me-2"></i>Fechas Límite y Plazos Procesales</h5>
-                <ul class="list-group">
-                    {% for f in data.fechas_y_plazos_urgentes %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="bi bi-calendar-check text-primary me-2"></i>
-                                <span>{{ f.concepto }}</span>
+            <!-- 3. TEST DE AUTOEVALUACIÓN INTERACTIVO -->
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-patch-question me-2"></i>3. Test Interactivo de Autoevaluación</h5>
+                <p class="text-muted small mb-4">Selecciona tu respuesta y despliega la solución para comprobar tu razonamiento.</p>
+
+                {% for q in data.modulo_educacion.preguntas_tipo_test %}
+                    <div class="test-card">
+                        <h6 class="fw-bold text-dark mb-3">Pregunta {{ loop.index }}: {{ q.pregunta }}</h6>
+                        
+                        <div class="mb-3">
+                            {% for op in q.opciones %}
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="pregunta_{{ q.id }}" id="q_{{ q.id }}_{{ loop.index }}">
+                                    <label class="form-check-label text-secondary" for="q_{{ q.id }}_{{ loop.index }}">
+                                        {{ op }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- DESPLEGABLE CON SOLUCIÓN OCULTA -->
+                        <div class="accordion" id="accordionTest{{ loop.index }}">
+                            <div class="accordion-item border-0">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed btn-sm py-2 bg-light rounded text-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSol{{ loop.index }}">
+                                        <i class="bi bi-eye-fill me-2"></i> Mostrar Solución y Explicación
+                                    </button>
+                                </h2>
+                                <div id="collapseSol{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#accordionTest{{ loop.index }}">
+                                    <div class="accordion-body bg-light border-top rounded-bottom mt-1">
+                                        <div class="alert alert-success py-2 mb-2">
+                                            <strong>Respuesta Correcta: {{ q.respuesta_correcta }}</strong>
+                                        </div>
+                                        <p class="small text-secondary mb-0"><strong>Explicación:</strong> {{ q.explicacion_detallada }}</p>
+                                    </div>
+                                </div>
                             </div>
-                            <span class="badge {% if f.es_urgente %}bg-danger{% else %}bg-secondary{% endif %} rounded-pill p-2">{{ f.fecha }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+
+        {% else %}
+
+            <!-- RIESGOS Y CLÁUSULAS PARA DOCUMENTOS LEGALES, INMOBILIARIOS Y FINANCIEROS -->
+            {% if data.puntos_criticos_con_riesgo %}
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-shield-exclamation me-2"></i>Evaluación de Riesgos y Cláusulas Clave</h5>
+                {% for p in data.puntos_criticos_con_riesgo %}
+                    <div class="p-3 mb-3 rounded {% if 'CRÍTICO' in p.nivel %}badge-critico{% elif 'REVISAR' in p.nivel %}badge-revisar{% else %}badge-normal{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="fs-6">{{ p.nivel }}</strong>
+                            <span class="badge bg-secondary opacity-75">{{ p.pagina }}</span>
+                        </div>
+                        <p class="mb-1 fw-medium">{{ p.punto }}</p>
+                        {% if p.contraste_estandar %}
+                            <small class="d-block opacity-75"><i class="bi bi-info-circle me-1"></i>Estándar / Normativa: {{ p.contraste_estandar }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
             </div>
             {% endif %}
 
-            <!-- Salida Accionable -->
-            <div class="mb-4">
-                <h5 class="fw-bold text-secondary"><i class="bi bi-send-check me-2"></i>Recomendación Accionable y Propuesta</h5>
-                <div class="pre-box">{{ data.salida_accionable }}</div>
-            </div>
+        {% endif %}
 
-            <!-- CAPA 9: PIE CON GARANTÍA DE PRIVACIDAD RGPD -->
-            <div class="text-center mt-4 pt-3 border-top text-muted small">
-                <i class="bi bi-shield-lock-fill text-success me-1"></i> Documento procesado bajo protocolo estricto RGPD. Memoria borrada al finalizar la sesión.
-            </div>
-
+        <!-- RECOMENDACIÓN / SUGERENCIA FINAL -->
+        <div class="card card-custom p-4 bg-primary text-white">
+            <h5 class="fw-bold mb-2"><i class="bi bi-compass me-2"></i>{{ 'Plan de Repaso Sugerido' if 'Educación' in data.categoria_documento else 'Recomendación Accionable' }}</h5>
+            <p class="mb-0">{{ data.salida_accionable }}</p>
         </div>
+
+        <p class="text-center text-muted small mt-4">{{ data.disclaimer }}</p>
+
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
