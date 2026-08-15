@@ -17,60 +17,58 @@ def index():
         
         if file:
             try:
-                # Leer el PDF
                 pdf_reader = pypdf.PdfReader(file)
+                total_paginas = len(pdf_reader.pages)
+                
+                # Límite de seguridad: leer como máximo las primeras 15 páginas para evitar saturar el servidor
+                max_paginas = min(total_paginas, 15)
                 texto_extraido = ""
                 
-                # Extraer texto página por página
-                for page in pdf_reader.pages:
-                    texto_pagina = page.extract_text()
+                for i in range(max_paginas):
+                    texto_pagina = pdf_reader.pages[i].extract_text()
                     if texto_pagina:
                         texto_extraido += texto_pagina + "\n"
                 
-                # Manejar el caso de PDFs escaneados o sin texto seleccionable
                 if not texto_extraido.strip():
                     texto_extraido = (
                         "[ADVERTENCIA] El PDF parece ser una imagen escaneada o no contiene texto seleccionable. "
-                        "Para analizar este tipo de archivos se requiere integración con un motor OCR (reconocimiento óptico)."
+                        "Para analizar este tipo de archivos se requiere integración con un motor OCR."
                     )
 
-                # Limitar la vista previa para no saturar la pantalla si es muy extenso
                 vista_previa = texto_extraido[:1500] + ("..." if len(texto_extraido) > 1500 else "")
 
                 data = {
-                    "tipo_documento": "Sentencia / Documento Procesal Extenso",
-                    "resumen_ejecutivo": f"Texto procesado correctamente ({len(pdf_reader.pages)} páginas). Vista previa: {vista_previa}",
+                    "tipo_documento": f"Sentencia / Documento Procesal ({total_paginas} páginas totales)",
+                    "resumen_ejecutivo": f"Procesadas las primeras {max_paginas} páginas de {total_paginas}. Vista previa: {vista_previa}",
                     "puntos_criticos_o_riesgos": [
-                        "Verificar la fecha de notificación oficial y notificación a las partes.",
-                        "Revisar el fallo de la sentencia y posibilidad de recurso de apelación/casación.",
-                        "Comprobar las costas procesales e importes fijados en la resolución."
+                        "Documento de gran extensión analizado de forma optimizada.",
+                        "Revisar el fallo de la sentencia y posibilidad de recursos de apelación/casación.",
+                        "Verificar las partes implicadas y las costas procesales en la resolución."
                     ],
                     "fechas_limite_importantes": [
-                        "Plazo de recurso: Revisar días hábiles aplicables según jurisdicción.",
-                        "Vencimiento: Confirmar con la agenda del juzgado."
+                        "Plazo de recurso: Consultar días hábiles procesales según la notificación.",
+                        "Vencimiento: Confirmar con la agenda del juzgado origen."
                     ],
                     "borrador_respuesta_preliminar": (
                         "AL JUZGADO DE PRIMERA INSTANCIA / AUDIENCIA PROVINCIAL\n\n"
                         "D./Dña. [Nombre del Abogado/Procurador], en representación de [Cliente], comparece y DICE:\n\n"
                         "Que habiendo sido notificada la resolución judicial adjunta, mediante el presente escrito "
-                        "manifestamos la postura de esta parte conforme a Derecho..."
+                        "formulamos las alegaciones/recurso correspondientes..."
                     )
                 }
 
                 return render_template("resultado.html", data=data)
 
             except Exception as e:
-                # Capturar cualquier error sin tumbar el servidor
                 error_data = {
                     "tipo_documento": "Error al procesar el archivo",
-                    "resumen_ejecutivo": f"No se pudo leer el archivo PDF. Detalle del error: {str(e)}",
+                    "resumen_ejecutivo": f"No se pudo leer el archivo PDF. Detalle: {str(e)}",
                     "puntos_criticos_o_riesgos": [
-                        "El archivo PDF podría estar protegido con contraseña.",
-                        "El PDF podría estar dañado o tener un formato no compatible.",
-                        "Prueba a subir un archivo PDF generado digitalmente."
+                        "El archivo supera los límites del servidor gratuito.",
+                        "Prueba con un documento más corto (1 a 20 páginas)."
                     ],
                     "fechas_limite_importantes": ["N/A"],
-                    "borrador_respuesta_preliminar": "No disponible debido a un error de lectura."
+                    "borrador_respuesta_preliminar": "No disponible."
                 }
                 return render_template("resultado.html", data=error_data)
 
