@@ -1,4 +1,4 @@
-import os
+ import os
 import json
 import re
 import io
@@ -43,6 +43,32 @@ def verificar_exactitud_datos(texto_pdf, json_analisis):
         "cifras_validadas": cifras_validadas,
         "advertencia_alucinacion": alucinaciones_detectadas
     }
+
+def verificar_descuadre_financiero(texto_pdf):
+    """
+    Analiza de forma determinista si en el documento financiero existe un descuadre matemático
+    entre la Base Imponible + IVA/Impuestos y el Total a pagar.
+    """
+    texto_limpio = texto_pdf.replace(".", "").replace(",", ".")
+    importes = [float(x) for x in re.findall(r'\b\d+\.\d{2}\b', texto_limpio)]
+    
+    if len(importes) >= 3:
+        for i in range(len(importes)):
+            for j in range(len(importes)):
+                if i == j: continue
+                for k in range(len(importes)):
+                    if k == i or k == j: continue
+                    a, b, c = importes[i], importes[j], importes[k]
+                    if abs((a + b) - c) > 0.05 and abs((a + b) - c) < 50000:
+                        if c > (a + b) and abs(c - (a + b)) > 1:
+                            diferencia = round(c - (a + b), 2)
+                            return {
+                                "hay_descuadre": True,
+                                "base_impuestos": round(a + b, 2),
+                                "total_declarado": round(c, 2),
+                                "diferencia": diferencia
+                            }
+    return {"hay_descuadre": False}
 
 def anonimizar_texto_sensible(texto):
     """Enmascara DNI/NIE, emails y teléfonos para protección de datos personales."""
@@ -98,17 +124,22 @@ def index():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
                 prompt_sistema = f"""
-                Eres LexAI Enterprise 2.0, auditor jurídico de precisión.
+                Eres LexAI Enterprise 2.0, auditor de precisión documental y financiera.
                 Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
 
-                CAPA DE AUDITORÍA DE CUMPLIMIENTO LEGAL IMPERATIVO (SISTEMA DE VERIFICACIÓN LAU/CÓDIGO CIVIL):
-                Si el documento es de categoría "Inmobiliario/Contratos" (Arrendamiento de vivienda en España), DEBES verificar de forma OBLIGATORIA e INDEPENDIENTE los siguientes 5 puntos imperativos de la Ley de Arrendamientos Urbanos (LAU), aunque el contrato intente pactar lo contrario:
+                CAPA DE AUDITORÍA SEGÚN CATEGORÍA:
 
-                1. FIANZA LEGAL (Art. 36.1 y 36.5 LAU): La fianza exigible legalmente en vivienda habitual es de EXACTAMENTE 1 MENSUALIDAD DE RENTA. Si el contrato fija una fianza superior (ej. 2 o 3 mensualidades) sin especificar y diferenciar claramente que el exceso es una "Garantía Adicional" (limitada además a máximo 2 meses más en vivienda habitual), MÁRCALO OBLIGATORIAMENTE COMO "🔴 CRÍTICO: Ilegalidad / Exceso sobre el límite del Art. 36 LAU".
-                2. ACTUALIZACIÓN DE RENTA (Art. 18 LAU): La renta solo puede actualizarse anualmente si está pactado expresamente, y NUNCA puede superar la variación del IPC/Índice legal. Pactos de subida fija automática (ej. +5% anual) son nulos. Si los hay, marca "🔴 CRÍTICO".
-                3. PRÓRROGA OBLIGATORIA (Art. 9 LAU): La duración pactada inferior a 5 años (o 7 si arrendador es empresa) se prorroga obligatoriamente año a año para el arrendador. Cláusulas que nieguen la prórroga legal al inquilino son "🔴 CRÍTICO".
-                4. DESISTIMIENTO Y PENALIZACIÓN (Art. 11 LAU): El inquilino puede desistir tras 6 meses. La indemnización máxima legal pactada no puede exceder de 1 mes por año restante. Exigir pagar todo el contrato restante es "🔴 CRÍTICO".
-                5. OBRAS Y REPARACIONES (Art. 21 LAU): Las reparaciones de habitabilidad (caldera, tuberías, estructura) son del arrendador. Obligar al inquilino a pagarlas es "🔴 CRÍTICO".
+                1. CATEGORÍA "Inmobiliario/Contratos" (LAU):
+                   - Verificar fianza (Art. 36 LAU: máx 1 mes en vivienda), actualización de renta (Art. 18), duración/prórrogas (Art. 9), desistimiento (Art. 11) y reparaciones (Art. 21). Si hay vulneraciones, marcar "🔴 CRÍTICO".
+
+                2. CATEGORÍA "Financiero/Facturación":
+                   - REGLA MATEMÁTICA IMPERATIVA: Suma MENTALMENTE y OBLIGATORIAMENTE la Base Imponible + IVA / Impuestos - Retenciones (IRPF).
+                   - Si la suma calculada NO COINCIDE exactamente con el TOTAL A PAGAR que figura en la factura, DEBES GENERAR OBLIGATORIAMENTE UN PUNTO "🔴 CRÍTICO: Error Matemático / Descuadre en Total a Pagar" indicando la diferencia exacta en euros.
+                   - EVALUACIÓN OBLIGATORIA DE RIESGOS: SIEMPRE debes incluir al menos 2-4 puntos en "puntos_criticos_con_riesgo" evaluando:
+                     * Exactitud de cálculos y suma de partidas.
+                     * Datos fiscales completos (NIF/CIF emisor y cliente).
+                     * Plazos de pago / Vencimiento y recargos por demora.
+                     * Conceptos facturados y retenciones aplicadas.
 
                 ESTRUCTURA DE RESPUESTA REQUERIDA (JSON VÁLIDO):
                 {{
@@ -118,14 +149,14 @@ def index():
                   "puntos_criticos_con_riesgo": [
                     {{
                       "nivel": "🔴 CRÍTICO | 🟡 REVISAR | 🟢 NORMAL",
-                      "punto": "Descripción detallada de la cláusula o del incumplimiento legal explícito",
+                      "punto": "Descripción detallada de la cláusula, error matemático o hallazgo contable/legal",
                       "pagina": "Ej: Pág. 1",
-                      "contraste_estandar": "Referencia explícita al artículo de la LAU/Ley incumplido o al estándar de mercado"
+                      "contraste_estandar": "Normativa aplicable o estándar contable/de mercado"
                     }}
                   ],
                   "fechas_y_plazos_urgentes": [
                     {{
-                      "concepto": "Descripción del plazo",
+                      "concepto": "Descripción del plazo o vencimiento de pago",
                       "fecha": "Fecha exacta o días",
                       "es_urgente": true
                     }}
@@ -135,8 +166,8 @@ def index():
                     "glosario": [],
                     "preguntas_tipo_test": []
                   }},
-                  "salida_accionable": "Acciones sugeridas o redacción corregida legalmente según el rol.",
-                  "disclaimer": "Este informe es una auditoría automatizada y no sustituye el asesoramiento de un abogado colegiado."
+                  "salida_accionable": "Acciones sugeridas o rectificación solicitada al emisor/contraparte.",
+                  "disclaimer": "Este informe es una auditoría automatizada y no sustituye el asesoramiento contable o legal profesional."
                 }}
                 """
 
@@ -165,8 +196,21 @@ def index():
                 contenido = response_json["choices"][0]["message"]["content"]
                 data = json.loads(contenido)
                 
+                # VERIFICACIÓN DE EXACTITUD GENERAL
                 verificacion = verificar_exactitud_datos(texto_extraido, data)
                 data["verificacion_exactitud"] = verificacion
+
+                # COMPROBACIÓN DETERMINISTA DE ARITMÉTICA FINANCIERA (Refuerzo Python)
+                descuadre = verificar_descuadre_financiero(texto_extraido)
+                if descuadre.get("hay_descuadre"):
+                    alerta_presente = any("descuadre" in p.get("punto", "").lower() or "error" in p.get("punto", "").lower() for p in data.get("puntos_criticos_con_riesgo", []))
+                    if not alerta_presente:
+                        data.setdefault("puntos_criticos_con_riesgo", []).insert(0, {
+                            "nivel": "🔴 CRÍTICO",
+                            "punto": f"Discrepancia y error de cálculo aritmético: La suma de Base Imponible + Impuestos resulta en {descuadre['base_impuestos']}€, pero el TOTAL A PAGAR indicado en el documento es de {descuadre['total_declarado']}€ (diferencia no justificada de {descuadre['diferencia']}€).",
+                            "pagina": "Pág. 1",
+                            "contraste_estandar": "Normativa de Facturación y Principios Contables (Suma de Base + Cuota de IVA)"
+                        })
 
                 if anonimizar:
                     data["resumen_ejecutivo"] = anonimizar_texto_sensible(data["resumen_ejecutivo"])
