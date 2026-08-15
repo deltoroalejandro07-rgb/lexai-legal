@@ -15,12 +15,10 @@ def verificar_exactitud_datos(texto_pdf, json_analisis):
     """
     texto_limpio = " ".join(texto_pdf.lower().split())
     
-    # 1. Extraer importes económicos ($ / € / EUR) del resumen y puntos críticos
     texto_a_verificar = json_analisis.get("resumen_ejecutivo", "") + " "
     for p in json_analisis.get("puntos_criticos_con_riesgo", []):
         texto_a_verificar += p.get("punto", "") + " "
     
-    # Buscar cifras monetarias (ej: 1.150,00 €, 3058505,22, 10%)
     patron_cifras = r'\b(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,2})?\s*(?:€|euros?|\$|USD|%)\b'
     cifras_encontradas = re.findall(patron_cifras, texto_a_verificar, re.IGNORECASE)
     
@@ -29,7 +27,6 @@ def verificar_exactitud_datos(texto_pdf, json_analisis):
     alucinaciones_detectadas = []
 
     for cifra in cifras_encontradas:
-        # Limpiar la cifra para búsqueda aproximada
         cifra_limpia = cifra.replace(" ", "").replace("€", "").replace("euros", "").replace("euro", "").strip()
         if cifra_limpia in texto_limpio.replace(" ", ""):
             cifras_validadas += 1
@@ -49,12 +46,9 @@ def verificar_exactitud_datos(texto_pdf, json_analisis):
 
 def anonimizar_texto_sensible(texto):
     """Enmascara DNI/NIE, emails y teléfonos para protección de datos personales."""
-    # Enmascarar DNI/NIE
     texto = re.sub(r'\b[0-9]{8}[A-Z]\b', '***REDACTADO_DNI***', texto, flags=re.IGNORECASE)
     texto = re.sub(r'\b[XYZ][0-9]{7}[A-Z]\b', '***REDACTADO_NIE***', texto, flags=re.IGNORECASE)
-    # Enmascarar Emails
     texto = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '***EMAIL_PROTEGIDO***', texto)
-    # Enmascarar Teléfonos (9 dígitos)
     texto = re.sub(r'\b(?:\+34\s?)?[6789]\d{2}[\s.-]?\d{3}[\s.-]?\d{3}\b', '***TEL_PROTEGIDO***', texto)
     return texto
 
@@ -77,15 +71,12 @@ def index():
                 if not api_key:
                     raise ValueError("No se ha configurado la clave OPENAI_API_KEY en Render.")
 
-                # GESTIÓN CONFIDENCIAL: Procesamiento 100% en Memoria RAM (BytesIO)
-                # El archivo NUNCA se guarda en el disco duro del servidor.
                 file_stream = io.BytesIO(file.read())
                 pdf_reader = pypdf.PdfReader(file_stream)
                 total_paginas = len(pdf_reader.pages)
                 
                 texto_extraido = ""
                 
-                # Muestreo inteligente de páginas
                 if total_paginas <= 15:
                     for i in range(total_paginas):
                         texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
@@ -107,23 +98,29 @@ def index():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
                 prompt_sistema = f"""
-                Eres LexAI Enterprise 2.0, motor de Inteligencia Documental con certificación de precisión y confidencialidad.
-                Analizarás el documento para el ROL DEL USUARIO: "{rol_usuario}".
+                Eres LexAI Enterprise 2.0, auditor jurídico de precisión.
+                Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
 
-                REGLA DE PRECISIÓN DE DATOS:
-                - Sé extremadamente estricto al citar cifras, fechas, plazos e importes monetarios. Cita SOLO cifras explícitas en el texto.
-                
-                ESTRUCTURA DE RESPUESTA EN JSON VÁLIDO:
+                CAPA DE AUDITORÍA DE CUMPLIMIENTO LEGAL IMPERATIVO (SISTEMA DE VERIFICACIÓN LAU/CÓDIGO CIVIL):
+                Si el documento es de categoría "Inmobiliario/Contratos" (Arrendamiento de vivienda en España), DEBES verificar de forma OBLIGATORIA e INDEPENDIENTE los siguientes 5 puntos imperativos de la Ley de Arrendamientos Urbanos (LAU), aunque el contrato intente pactar lo contrario:
+
+                1. FIANZA LEGAL (Art. 36.1 y 36.5 LAU): La fianza exigible legalmente en vivienda habitual es de EXACTAMENTE 1 MENSUALIDAD DE RENTA. Si el contrato fija una fianza superior (ej. 2 o 3 mensualidades) sin especificar y diferenciar claramente que el exceso es una "Garantía Adicional" (limitada además a máximo 2 meses más en vivienda habitual), MÁRCALO OBLIGATORIAMENTE COMO "🔴 CRÍTICO: Ilegalidad / Exceso sobre el límite del Art. 36 LAU".
+                2. ACTUALIZACIÓN DE RENTA (Art. 18 LAU): La renta solo puede actualizarse anualmente si está pactado expresamente, y NUNCA puede superar la variación del IPC/Índice legal. Pactos de subida fija automática (ej. +5% anual) son nulos. Si los hay, marca "🔴 CRÍTICO".
+                3. PRÓRROGA OBLIGATORIA (Art. 9 LAU): La duración pactada inferior a 5 años (o 7 si arrendador es empresa) se prorroga obligatoriamente año a año para el arrendador. Cláusulas que nieguen la prórroga legal al inquilino son "🔴 CRÍTICO".
+                4. DESISTIMIENTO Y PENALIZACIÓN (Art. 11 LAU): El inquilino puede desistir tras 6 meses. La indemnización máxima legal pactada no puede exceder de 1 mes por año restante. Exigir pagar todo el contrato restante es "🔴 CRÍTICO".
+                5. OBRAS Y REPARACIONES (Art. 21 LAU): Las reparaciones de habitabilidad (caldera, tuberías, estructura) son del arrendador. Obligar al inquilino a pagarlas es "🔴 CRÍTICO".
+
+                ESTRUCTURA DE RESPUESTA REQUERIDA (JSON VÁLIDO):
                 {{
                   "categoria_documento": "Legal/Judicial | Inmobiliario/Contratos | Financiero/Facturación | Recursos Humanos | Salud/Seguros | Educación/Académico | General",
                   "tipo_documento": "Nombre exacto del tipo de archivo",
-                  "resumen_ejecutivo": "Explicación fluida y rigurosa adaptada al rol seleccionado, incluyendo fallo/resolución.",
+                  "resumen_ejecutivo": "Resumen claro y riguroso adaptado al rol.",
                   "puntos_criticos_con_riesgo": [
                     {{
                       "nivel": "🔴 CRÍTICO | 🟡 REVISAR | 🟢 NORMAL",
-                      "punto": "Descripción del hallazgo o cláusula",
-                      "pagina": "Ej: Pág. 3",
-                      "contraste_estandar": "Comparación breve con el estándar del mercado"
+                      "punto": "Descripción detallada de la cláusula o del incumplimiento legal explícito",
+                      "pagina": "Ej: Pág. 1",
+                      "contraste_estandar": "Referencia explícita al artículo de la LAU/Ley incumplido o al estándar de mercado"
                     }}
                   ],
                   "fechas_y_plazos_urgentes": [
@@ -138,8 +135,8 @@ def index():
                     "glosario": [],
                     "preguntas_tipo_test": []
                   }},
-                  "salida_accionable": "Recomendación concreta, borrador o próximos pasos según el rol.",
-                  "disclaimer": "Aviso legal/médico preventivo si aplica."
+                  "salida_accionable": "Acciones sugeridas o redacción corregida legalmente según el rol.",
+                  "disclaimer": "Este informe es una auditoría automatizada y no sustituye el asesoramiento de un abogado colegiado."
                 }}
                 """
 
@@ -155,7 +152,7 @@ def index():
                         {"role": "system", "content": prompt_sistema},
                         {"role": "user", "content": f"Documento ({total_paginas} págs.) para Rol {rol_usuario}:\n\n{texto_extraido[:85000]}"}
                     ],
-                    "temperature": 0.0 # Temperatura cero para máxima fidelidad
+                    "temperature": 0.0
                 }
 
                 response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
@@ -168,11 +165,9 @@ def index():
                 contenido = response_json["choices"][0]["message"]["content"]
                 data = json.loads(contenido)
                 
-                # 8. CAPA DE VERIFICACIÓN DE EXACTITUD (Auto-chequeo)
                 verificacion = verificar_exactitud_datos(texto_extraido, data)
                 data["verificacion_exactitud"] = verificacion
 
-                # 9. GESTIÓN DE DATOS SENSIBLES (Anonimización si se solicitó)
                 if anonimizar:
                     data["resumen_ejecutivo"] = anonimizar_texto_sensible(data["resumen_ejecutivo"])
                     data["salida_accionable"] = anonimizar_texto_sensible(data["salida_accionable"])
@@ -180,11 +175,9 @@ def index():
                 data["tipo_documento"] += f" ({total_paginas} págs. analizadas)"
                 data["rol_analizado"] = rol_usuario
 
-                # BARRIDO DE MEMORIA RAM
                 del file_stream
                 del texto_extraido
 
-                # Respuesta con cabeceras de privacidad (No almacenar en caché)
                 resp = make_response(render_template("resultado.html", data=data))
                 resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
                 resp.headers["Pragma"] = "no-cache"
