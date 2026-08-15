@@ -39,9 +39,9 @@ def index():
 
                 Debes responder ÚNICAMENTE con un objeto JSON válido estructurado con las siguientes claves:
                 {
-                  "categoria_documento": "Categoría general (Ej: Legal/Judicial, Inmobiliario/Contratos, Financiero/Facturación, Recursos Humanos, Salud/Médico, Académico/Estudio, etc.)",
-                  "tipo_documento": "Nombre exacto del documento (Ej: Sentencia Penal, Contrato de Arrendamiento, Factura Simplificada, Currículum Vitae, Apuntes de Examen, Informe Clínico)",
-                  "resumen_ejecutivo": "Un resumen exhaustivo, profundo y fluido adaptado a la naturaleza del documento. Explica contexto, partes o sujetos involucrados, datos clave y conclusiones.",
+                  "categoria_documento": "Categoría general (Ej: Legal/Judicial, Inmobiliario/Contratos, Financiero/Facturación, Recursos Humanos, Salud/Médico, Educación/Académico, etc.)",
+                  "tipo_documento": "Nombre exacto del documento (Ej: Sentencia Penal, Contrato de Arrendamiento, Factura, Currículum Vitae, Apuntes de Examen, Temario Máster, Informe Clínico)",
+                  "resumen_ejecutivo": "Un resumen exhaustivo, profundo y fluido adaptado a la naturaleza del documento. Explica contexto, partes involucradas, datos clave y conclusiones.",
                   "puntos_criticos_o_riesgos": [
                     "Punto crítico, cláusula de riesgo, requisito obligatorio, habilidad destacada o hallazgo principal 1",
                     "Punto crítico o hallazgo 2",
@@ -62,9 +62,9 @@ def index():
                   "accion_o_borrador_recomendado": "Redacta una respuesta, correo, borrador procesal, contraoferta o recomendación formal según el contexto del documento."
                 }
 
-                Instrucción especial para 'preguntas_tipo_test':
-                - Si el documento es académico, un libro, manual, examen o apuntes de estudio, GENERA OBLIGATORIAMENTE 3 a 5 preguntas tipo test útiles para autoevaluación.
-                - Si el documento NO es académico (es una factura, nómina, etc.), puedes dejar el array vacio [] o generar 1-2 preguntas de comprobación de lectura.
+                REGLA ESTRICTA PARA 'preguntas_tipo_test':
+                - SI Y SOLO SI el documento es de categoría EDUCACIÓN / ACADÉMICO (apuntes universitarios, libros de texto, máster, secundaria, temarios de oposición o guías de estudio), GENERA entre 3 y 5 preguntas tipo test para repaso.
+                - PARA CUALQUIER OTRO TIPO DE DOCUMENTO (Contratos, Facturas, Nóminas, Sentencias, Currículums, Informes Médicos), DEBES DEJAR ESTE ARRAY COMPLETAMENTE VACÍO: "preguntas_tipo_test": []
                 """
 
                 api_key = os.environ.get("OPENAI_API_KEY", "").strip()
@@ -83,7 +83,7 @@ def index():
                         {"role": "system", "content": prompt_sistema},
                         {"role": "user", "content": f"Documento a analizar ({total_paginas} páginas totales):\n\n{texto_extraido[:14000]}"}
                     ],
-                    "temperature": 0.2
+                    "temperature": 0.1
                 }
 
                 response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
@@ -118,3 +118,5 @@ def index():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+           
+           
