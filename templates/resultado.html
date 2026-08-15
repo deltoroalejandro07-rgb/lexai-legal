@@ -3,58 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resultado del Análisis - LexAI Legal</title>
+    <title>Análisis Inteligente de Documento - LexAI Multi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 40px; color: #333; }
-        .container { max-width: 800px; background: white; padding: 30px; margin: 0 auto; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { color: #1a2a3a; border-bottom: 2px solid #0066cc; padding-bottom: 10px; }
-        .section { margin-bottom: 25px; text-align: left; }
-        h3 { color: #0066cc; margin-bottom: 8px; }
-        ul { background: #f8f9fa; padding: 15px 30px; border-radius: 6px; }
-        li { margin-bottom: 5px; }
-        pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 14px; white-space: pre-wrap; }
-        .btn-back { display: inline-block; margin-top: 20px; background-color: #6c757d; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; }
-        .btn-back:hover { background-color: #5a6268; }
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-custom { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .badge-cat { background-color: #0d6efd; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; }
+        .test-card { background-color: #f8f9fa; border-left: 4px solid #0d6efd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .pre-box { background-color: #212529; color: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>⚖️ Resultado del Análisis Legal</h1>
+<body class="py-5">
+    <div class="container" style="max-width: 900px;">
         
-        <div class="section">
-            <h3>📄 Tipo de Documento</h3>
-            <p><strong>{{ data.tipo_documento }}</strong></p>
-        </div>
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="badge-cat"><i class="bi bi-folder2-open me-1"></i> {{ data.categoria_documento if data.categoria_documento else 'Documento' }}</span>
+                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Analizar otro documento</a>
+            </div>
 
-        <div class="section">
-            <h3>📝 Resumen Ejecutivo</h3>
-            <p>{{ data.resumen_ejecutivo }}</p>
-        </div>
+            <h2 class="h4 text-primary fw-bold mb-3"><i class="bi bi-file-earmark-text me-2"></i>{{ data.tipo_documento }}</h2>
+            
+            <!-- Resumen Ejecutivo -->
+            <div class="mb-4">
+                <h5 class="fw-bold text-secondary"><i class="bi bi-journal-text me-2"></i>Resumen Ejecutivo</h5>
+                <p class="text-dark bg-light p-3 rounded" style="line-height: 1.6;">{{ data.resumen_ejecutivo }}</p>
+            </div>
 
-        <div class="section">
-            <h3>⚠️ Puntos Críticos y Riesgos</h3>
-            <ul>
-                {% for punto in data.puntos_criticos_o_riesgos %}
-                    <li>{{ punto }}</li>
+            <!-- Puntos Críticos o Datos Clave -->
+            <div class="mb-4">
+                <h5 class="fw-bold text-secondary"><i class="bi bi-exclamation-triangle me-2"></i>Puntos Críticos, Cláusulas o Datos Clave</h5>
+                <ul class="list-group list-group-flush">
+                    {% for item in data.puntos_criticos_o_riesgos %}
+                        <li class="list-group-item bg-light mb-1 rounded"><i class="bi bi-check2-circle text-primary me-2"></i>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Fechas / Vencimientos / Hitos -->
+            <div class="mb-4">
+                <h5 class="fw-bold text-secondary"><i class="bi bi-calendar-event me-2"></i>Fechas, Vencimientos u Hitos Importantes</h5>
+                <ul class="list-group list-group-flush">
+                    {% for fecha in data.fechas_y_plazos_clave %}
+                        <li class="list-group-item bg-light mb-1 rounded"><i class="bi bi-clock-history text-warning me-2"></i>{{ fecha }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Módulo Didáctico: Preguntas Tipo Test (si existen) -->
+            {% if data.preguntas_tipo_test and data.preguntas_tipo_test|length > 0 %}
+            <div class="mb-4">
+                <h5 class="fw-bold text-primary"><i class="bi bi-mortarboard me-2"></i>Evaluación / Preguntas Tipo Test de Repaso</h5>
+                <p class="text-muted small">Generadas automáticamente para estudio o autocomprobación:</p>
+                
+                {% for q in data.preguntas_tipo_test %}
+                <div class="test-card">
+                    <p class="fw-bold mb-2">{{ loop.index }}. {{ q.pregunta }}</p>
+                    <ul class="list-unstyled ms-3 mb-2">
+                        {% for opc in q.opciones %}
+                            <li class="text-secondary small mb-1">{{ opc }}</li>
+                        {% endfor %}
+                    </ul>
+                    <details class="mt-2">
+                        <summary class="btn btn-sm btn-outline-primary py-0 text-decoration-none">Ver solución</summary>
+                        <div class="mt-2 p-2 bg-white rounded border small">
+                            <strong class="text-success">Respuesta: {{ q.respuesta_correcta }}</strong>
+                            <p class="mb-0 text-muted mt-1">{{ q.explicacion }}</p>
+                        </div>
+                    </details>
+                </div>
                 {% endfor %}
-            </ul>
+            </div>
+            {% endif %}
+
+            <!-- Borrador / Acción Recomendada -->
+            <div class="mb-3">
+                <h5 class="fw-bold text-secondary"><i class="bi bi-pencil-square me-2"></i>Propuesta de Acción, Correo o Borrador Recomendado</h5>
+                <div class="pre-box">{{ data.accion_o_borrador_recomendado }}</div>
+            </div>
+
         </div>
 
-        <div class="section">
-            <h3>📅 Fechas Límite Importantes</h3>
-            <ul>
-                {% for fecha in data.fechas_limite_importantes %}
-                    <li>{{ fecha }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-
-        <div class="section">
-            <h3>✍️ Borrador de Respuesta Preliminar</h3>
-            <pre>{{ data.borrador_respuesta_preliminar }}</pre>
-        </div>
-
-        <a href="/" class="btn-back">⬅️ Analizar otro documento</a>
     </div>
 </body>
 </html>
