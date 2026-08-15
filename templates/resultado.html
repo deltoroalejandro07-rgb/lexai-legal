@@ -9,10 +9,9 @@
 <body class="bg-gray-50 min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
         
-        <!-- Mensaje de Error Visible Global -->
         {% if error %}
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 text-center font-medium shadow-sm">
-            ⚠️ <strong>Error:</strong> {{ error }}
+            ⚠️ <strong>Error del sistema:</strong> {{ error }}
         </div>
         {% endif %}
 
@@ -30,17 +29,6 @@
         </div>
 
         <h1 class="text-3xl font-bold text-blue-600 mb-6">Análisis</h1>
-
-        <!-- Auditoría -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
-            <div>
-                <h2 class="font-bold text-gray-800">Auditoría Anti-Alucinación Cifras/Fechas</h2>
-                <p class="text-sm text-gray-500">Contrastado determinísticamente contra el texto original del PDF</p>
-            </div>
-            <span class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold">
-                Exactitud: 100%
-            </span>
-        </div>
 
         <!-- Visión General / Resumen -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
@@ -71,7 +59,7 @@
                 {% for punto in data.get('puntos_criticos_con_riesgo', []) %}
                 <li class="flex items-start bg-red-50 p-3 rounded-lg border border-red-100">
                     <span class="text-red-500 font-bold mr-2">⚠️</span>
-                    <span class="text-gray-700 text-sm">{{ punto.get('punto', punto) }}</span>
+                    <span class="text-gray-700 text-sm">{{ punto.get('punto', punto) if punto is mapping else punto }}</span>
                 </li>
                 {% endfor %}
             </ul>
@@ -93,7 +81,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    {% if pregunta.get('respuesta_correcta') %>
+                    {% if pregunta.get('respuesta_correcta') %}
                     <p class="text-xs text-green-700 font-bold mt-3">Respuesta correcta: {{ pregunta.get('respuesta_correcta') }}</p>
                     {% endif %}
                 </div>
