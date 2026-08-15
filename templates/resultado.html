@@ -1,13 +1,15 @@
-<!DOCTYPE html>
+     <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LexAI 2.0 - Análisis</title>
+    <title>LexAI 2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen p-6">
     <div class="max-w-4xl mx-auto">
+        {% if data and data.get('resumen_ejecutivo') %}
+        <!-- Pantalla de Resultados -->
         <div class="flex justify-between items-center mb-6">
             <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
                 {{ data.get('categoria_documento', 'General') }}
@@ -28,7 +30,6 @@
         </div>
         {% endif %}
 
-        {% if data %}
         <!-- Auditoría -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6 flex justify-between items-center">
             <div>
@@ -100,6 +101,38 @@
         </div>
         {% endif %}
 
+        {% else %}
+        <!-- Pantalla de Inicio / Subir PDF -->
+        <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200 text-center">
+            <h1 class="text-3xl font-bold text-blue-600 mb-2">LexAI 2.0</h1>
+            <p class="text-gray-600 mb-6">Sube tu documento PDF para iniciar el análisis inteligente</p>
+            
+            <form action="/" method="POST" enctype="multipart/form-data" class="space-y-4 max-w-md mx-auto text-left">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Selecciona tu Rol:</label>
+                    <select name="rol" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white">
+                        <option value="Estudiante / Opositor">Estudiante / Opositor</option>
+                        <option value="Abogado / Jurista">Abogado / Jurista</option>
+                        <option value="Inversor / Financiero">Inversor / Financiero</option>
+                        <option value="Neutro">Neutro</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Documento PDF:</label>
+                    <input type="file" name="archivo" accept=".pdf" required class="w-full border border-gray-300 rounded-lg p-2 text-sm bg-white">
+                </div>
+
+                <div class="flex items-center">
+                    <input type="checkbox" name="anonimizar" id="anonimizar" class="mr-2 h-4 w-4">
+                    <label for="anonimizar" class="text-sm text-gray-700">Anonimizar datos sensibles (DNI, Teléfono, IBAN)</label>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition">
+                    Analizar Documento
+                </button>
+            </form>
+        </div>
         {% endif %}
     </div>
 </body>
