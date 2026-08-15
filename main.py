@@ -114,7 +114,38 @@ def index():
 
                 if not texto_extraido.strip():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
+if not texto_extraído.strip():
+        texto_extraído = "Documento escaneado sin texto digital reconocible."
 
+    # --- CÁLCULO DINÁMICO DE PREGUNTAS SEGÚN PÁGINAS ---
+    def calcular_num_preguntas(paginas):
+        if paginas <= 5: return 8
+        elif paginas <= 15: return 15
+        elif paginas <= 30: return 30
+        elif paginas <= 60: return 50
+        elif paginas <= 100: return 75
+        else: return 100
+    
+    target_preguntas = calcular_num_preguntas(total_paginas)
+    # ----------------------------------------------------
+
+    prompt_sistema = f"""
+    Eres LexAI Enterprise 2.0, auditor y tutor académico de precisión.
+    Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
+
+    INSTRUCCIONES ESPECÍFICAS SEGÚN CATEGORÍA:
+
+    1. CATEGORÍA "Educación/Académico" (Apuntes, libros, artículos, temarios):
+       - NO GENERAR RIESGOS NI CLÁUSULAS CRÍTICAS.
+       - Dejar "puntos_criticos_con_riesgo" VACÍO [].
+       - Genera dentro del objeto "modulo_educacion":
+         a) "resumen_esquematico": Una lista detallada donde cada apartado incluya OBLIGATORIAMENTE un resumen explicativo de 2 o 3 frases que desarrolle la teoría y los conceptos clave (¡NO listes solo títulos o índices secos!).
+         b) "glosario": 8 a 12 términos técnicos/clave con sus definiciones precisas.
+         c) "preguntas_tipo_test": Genera EXACTAMENTE {target_preguntas} preguntas tipo test representativas de todo el documento, con sus 4 opciones, respuesta correcta y explicación pedagógica detallada.
+
+    2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
+       - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
+       - Dejar "modulo_educacion" con arrays vacíos.
                 prompt_sistema = f"""
                 Eres LexAI Enterprise 2.0, auditor y tutor académico de precisión.
                 Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
