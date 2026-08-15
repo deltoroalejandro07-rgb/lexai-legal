@@ -34,28 +34,43 @@ def index():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
                 prompt_sistema = """
-                Eres un abogado senior experto. Analiza el documento procesal/legal y responde ÚNICAMENTE con un objeto JSON válido con este formato:
+                Eres un Analizador Universal de Documentos impulsado por IA de nivel profesional multidisciplinar.
+                Tu tarea es clasificar y analizar minuciosamente cualquier documento que recibas (Legales, Inmobiliarios, Financieros, RRHH, Médicos, Académicos, Técnicos, etc.).
+
+                Debes responder ÚNICAMENTE con un objeto JSON válido estructurado con las siguientes claves:
                 {
-                  "tipo_documento": "Tipo exacto de documento (Ej: Sentencia Penal, Notificación de Embargo, Contrato de Arrendamiento)",
-                  "resumen_ejecutivo": "Un análisis exhaustivo, amplio y detailed de los hechos, las partes implicadas, los fundamentos jurídicos y la resolución final o pretensión.",
+                  "categoria_documento": "Categoría general (Ej: Legal/Judicial, Inmobiliario/Contratos, Financiero/Facturación, Recursos Humanos, Salud/Médico, Académico/Estudio, etc.)",
+                  "tipo_documento": "Nombre exacto del documento (Ej: Sentencia Penal, Contrato de Arrendamiento, Factura Simplificada, Currículum Vitae, Apuntes de Examen, Informe Clínico)",
+                  "resumen_ejecutivo": "Un resumen exhaustivo, profundo y fluido adaptado a la naturaleza del documento. Explica contexto, partes o sujetos involucrados, datos clave y conclusiones.",
                   "puntos_criticos_o_riesgos": [
-                    "Riesgo o punto crítico 1 con explicación detallada",
-                    "Riesgo o punto crítico 2",
-                    "Riesgo o punto crítico 3"
+                    "Punto crítico, cláusula de riesgo, requisito obligatorio, habilidad destacada o hallazgo principal 1",
+                    "Punto crítico o hallazgo 2",
+                    "Punto crítico o hallazgo 3"
                   ],
-                  "fechas_limite_importantes": [
-                    "Plazo procesal 1 y fecha/días hábiles para responder",
-                    "Plazo o fecha clave 2"
+                  "fechas_y_plazos_clave": [
+                    "Plazo procesal, vencimiento de contrato, fecha de pago o hito importante 1",
+                    "Fecha límite o hito 2"
                   ],
-                  "borrador_respuesta_preliminar": "Redacta un escrito o borrador formal completo y profesional para contestar o recurrir este documento."
+                  "preguntas_tipo_test": [
+                    {
+                      "pregunta": "¿Pregunta de evaluación sobre el texto?",
+                      "opciones": ["A) Opción 1", "B) Opción 2", "C) Opción 3", "D) Opción 4"],
+                      "respuesta_correcta": "Letra y opción correcta",
+                      "explicacion": "Explicación breve del motivo de la respuesta."
+                    }
+                  ],
+                  "accion_o_borrador_recomendado": "Redacta una respuesta, correo, borrador procesal, contraoferta o recomendación formal según el contexto del documento."
                 }
+
+                Instrucción especial para 'preguntas_tipo_test':
+                - Si el documento es académico, un libro, manual, examen o apuntes de estudio, GENERA OBLIGATORIAMENTE 3 a 5 preguntas tipo test útiles para autoevaluación.
+                - Si el documento NO es académico (es una factura, nómina, etc.), puedes dejar el array vacio [] o generar 1-2 preguntas de comprobación de lectura.
                 """
 
                 api_key = os.environ.get("OPENAI_API_KEY", "").strip()
                 if not api_key:
                     raise ValueError("No se ha configurado la clave OPENAI_API_KEY en Render.")
 
-                # Petición HTTP directa a la API de OpenAI
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
@@ -88,11 +103,13 @@ def index():
 
             except Exception as e:
                 error_data = {
+                    "categoria_documento": "Error",
                     "tipo_documento": "Error en el análisis",
                     "resumen_ejecutivo": f"No se pudo completar el análisis. Detalle: {str(e)}",
-                    "puntos_criticos_o_riesgos": ["Revisa el mensaje de error superior para ver la causa exacta."],
-                    "fechas_limite_importantes": ["N/A"],
-                    "borrador_respuesta_preliminar": "No disponible."
+                    "puntos_criticos_o_riesgos": ["Revisa la configuración o la clave API."],
+                    "fechas_y_plazos_clave": ["N/A"],
+                    "preguntas_tipo_test": [],
+                    "accion_o_borrador_recomendado": "No disponible."
                 }
                 return render_template("resultado.html", data=error_data)
 
@@ -101,4 +118,3 @@ def index():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-    
