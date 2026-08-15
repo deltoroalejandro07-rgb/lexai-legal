@@ -1,14 +1,11 @@
-mport os
+import os
 import json
 import re
-import io
 import requests
-from flask import Flask, render_template, request, make_response
+from flask import Flask, render_template, request
 import pypdf
 
 app = Flask(__name__)
-
-# --- FUNCIONES AUXILIARES ---
 
 def anonimizar_texto_sensible(texto):
     if not isinstance(texto, str):
@@ -57,11 +54,9 @@ def verificar_descuadre_financiero(texto_pdf):
             return {"hay_descuadre": True, "detalle": f"Suma parcial ({suma_parcial}) difiere del total ({total_declarado})"}
     return {"hay_descuadre": False}
 
-# --- RUTA PRINCIPAL ---
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    data = {}  # <--- Inicializado como diccionario vacío para evitar errores al cargar la página por primera vez
+    data = {}
     texto_extraído = ""
     error = None
     total_paginas = 1
