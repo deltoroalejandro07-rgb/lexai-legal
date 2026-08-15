@@ -1,4 +1,4 @@
- import os
+import os
 import json
 import re
 import io
@@ -9,10 +9,6 @@ import pypdf
 app = Flask(__name__)
 
 def verificar_exactitud_datos(texto_pdf, json_analisis):
-    """
-    Función determinista que contrasta cifras e importes del JSON de la IA
-    contra el texto original extraído del PDF para detectar posibles alucinaciones.
-    """
     texto_limpio = " ".join(texto_pdf.lower().split())
     
     texto_a_verificar = json_analisis.get("resumen_ejecutivo", "") + " "
@@ -45,19 +41,17 @@ def verificar_exactitud_datos(texto_pdf, json_analisis):
     }
 
 def verificar_descuadre_financiero(texto_pdf):
-    """
-    Analiza de forma determinista si en el documento financiero existe un descuadre matemático
-    entre la Base Imponible + IVA/Impuestos y el Total a pagar.
-    """
     texto_limpio = texto_pdf.replace(".", "").replace(",", ".")
     importes = [float(x) for x in re.findall(r'\b\d+\.\d{2}\b', texto_limpio)]
     
     if len(importes) >= 3:
         for i in range(len(importes)):
             for j in range(len(importes)):
-                if i == j: continue
+                if i == j: 
+                    continue
                 for k in range(len(importes)):
-                    if k == i or k == j: continue
+                    if k == i or k == j: 
+                        continue
                     a, b, c = importes[i], importes[j], importes[k]
                     if abs((a + b) - c) > 0.05 and abs((a + b) - c) < 50000:
                         if c > (a + b) and abs(c - (a + b)) > 1:
@@ -71,7 +65,6 @@ def verificar_descuadre_financiero(texto_pdf):
     return {"hay_descuadre": False}
 
 def anonimizar_texto_sensible(texto):
-    """Enmascara DNI/NIE, emails y teléfonos para protección de datos personales."""
     texto = re.sub(r'\b[0-9]{8}[A-Z]\b', '***REDACTADO_DNI***', texto, flags=re.IGNORECASE)
     texto = re.sub(r'\b[XYZ][0-9]{7}[A-Z]\b', '***REDACTADO_NIE***', texto, flags=re.IGNORECASE)
     texto = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '***EMAIL_PROTEGIDO***', texto)
@@ -196,11 +189,9 @@ def index():
                 contenido = response_json["choices"][0]["message"]["content"]
                 data = json.loads(contenido)
                 
-                # VERIFICACIÓN DE EXACTITUD GENERAL
                 verificacion = verificar_exactitud_datos(texto_extraido, data)
                 data["verificacion_exactitud"] = verificacion
 
-                # COMPROBACIÓN DETERMINISTA DE ARITMÉTICA FINANCIERA (Refuerzo Python)
                 descuadre = verificar_descuadre_financiero(texto_extraido)
                 if descuadre.get("hay_descuadre"):
                     alerta_presente = any("descuadre" in p.get("punto", "").lower() or "error" in p.get("punto", "").lower() for p in data.get("puntos_criticos_con_riesgo", []))
