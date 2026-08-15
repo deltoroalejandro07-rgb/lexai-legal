@@ -90,18 +90,27 @@ def index():
             if not api_key:
                 error = "Falta configurar la clave de OpenAI."
             else:
-                target_preguntas = min(100, max(8, total_paginas // 2))
+                target_preguntas = min(30, max(5, total_paginas // 2))
                 prompt_sistema = (
                     f"Eres LexAI 2.0. ROL: {rol_usuario}. Analiza todo el documento de {total_paginas} páginas "
                     f"y genera estrictamente un JSON válido con las claves: 'categoria_documento', 'resumen_ejecutivo', "
                     f"'puntos_criticos_con_riesgo', 'esquema_detallado' (una lista de objetos con 'titulo' y 'resumen_seccion' "
                     f"de 2-4 líneas explicando cada apartado específico del documento), y 'modulo_educacion' "
                     f"(que contenga exactamente {target_preguntas} preguntas tipo test distribuidas de forma equitativa "
-                    f"por todo el contenido, desde el principio hasta el final del documento)."
+                    f"por todo el contenido, estructuradas con 'pregunta', 'opciones' y 'respuesta_correcta')."
                 )
                 try:
-                    payload = {"model": "gpt-4o", "messages": [{"role": "system", "content": prompt_sistema}, {"role": "user", "content": texto_extraído}], "response_format": {"type": "json_object"}}
-                    response = requests.post("https://api.openai.com/v1/chat/completions", headers={"Authorization": f"Bearer {api_key}"}, json=payload, timeout=60)
+                    payload = {
+                        "model": "gpt-4o",
+                        "messages": [{"role": "system", "content": prompt_sistema}, {"role": "user", "content": texto_extraído}],
+                        "response_format": {"type": "json_object"}
+                    }
+                    response = requests.post(
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {api_key}"},
+                        json=payload,
+                        timeout=90
+                    )
                     if response.status_code == 200:
                         data = json.loads(response.json()["choices"][0]["message"]["content"])
                         data["verificacion_exactitud"] = verificar_exactitud_datos(texto_extraído, data)
@@ -113,7 +122,7 @@ def index():
                             data["resumen_ejecutivo"] = anonimizar_texto_sensible(data.get("resumen_ejecutivo", ""))
                         data["rol_analizado"] = rol_usuario
                     else:
-                        error = "Error de API OpenAI."
+                        error = f"Error de API OpenAI: {response.text}"
                 except Exception as e:
                     error = str(e)
 
