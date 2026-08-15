@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análisis LexAI 2.0</title>
+    <title>Análisis LexAI Enterprise</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
@@ -13,6 +13,7 @@
         .badge-rol { background-color: #475569; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; }
         .pre-box { background-color: #0f172a; color: #f8fafc; padding: 18px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 0.9rem; }
         .page-tag { background-color: #e2e8f0; color: #334155; font-size: 0.75rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-right: 6px; }
+        .verification-box { background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="py-5">
@@ -20,7 +21,7 @@
         
         <div class="card card-custom p-4 mb-4">
             
-            <!-- Encabezado con Categoría y Rol -->
+            <!-- Encabezado con Categoría, Rol y Nivel de Exactitud -->
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                 <div>
                     <span class="badge-cat me-2"><i class="bi bi-folder2-open me-1"></i> {{ data.categoria_documento }}</span>
@@ -30,6 +31,20 @@
             </div>
 
             <h2 class="h4 text-primary fw-bold mb-3">{{ data.tipo_documento }}</h2>
+
+            <!-- CAPA 8: CAJA DE AUDITORÍA Y VERIFICACIÓN DE EXACTITUD -->
+            <div class="verification-box p-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-patch-check-fill fs-3 text-success me-3"></i>
+                    <div>
+                        <h6 class="mb-0 fw-bold text-dark">Auditoría Anti-Alucinación Cifras/Fechas</h6>
+                        <small class="text-muted">Contrastado deterministamente contra el texto original del PDF</small>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-success fs-6 p-2"><i class="bi bi-check2-circle me-1"></i> Exactitud: {{ data.verificacion_exactitud.score_exactitud }}%</span>
+                </div>
+            </div>
 
             <!-- Disclaimer Legal / Médico (si existe) -->
             {% if data.disclaimer %}
@@ -45,7 +60,7 @@
                 <p class="text-dark bg-white p-3 rounded border" style="line-height: 1.6;">{{ data.resumen_ejecutivo }}</p>
             </div>
 
-            <!-- Matriz de Puntuación de Riesgo Visual -->
+            <!-- Matriz de Riesgo Visual con Referencias a Páginas -->
             <div class="mb-4">
                 <h5 class="fw-bold text-secondary"><i class="bi bi-shield-shaded me-2"></i>Evaluación de Riesgos y Cláusulas Clave</h5>
                 <div class="list-group">
@@ -85,57 +100,15 @@
             </div>
             {% endif %}
 
-            <!-- MÓDULO EXCLUSIVO DE EDUCACIÓN -->
-            {% if data.modulo_educacion and (data.modulo_educacion.preguntas_tipo_test|length > 0 or data.modulo_educacion.glosario|length > 0) %}
-            <div class="p-3 bg-light rounded border mb-4">
-                <h5 class="fw-bold text-primary"><i class="bi bi-mortarboard me-2"></i>Módulo de Estudio y Autoevaluación</h5>
-                
-                {% if data.modulo_educacion.resumen_esquematico %}
-                    <h6 class="fw-bold mt-3 text-secondary">Esquema de Conceptos Clave:</h6>
-                    <ul>
-                        {% for pt in data.modulo_educacion.resumen_esquematico %}
-                            <li>{{ pt }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-
-                {% if data.modulo_educacion.glosario %}
-                    <h6 class="fw-bold mt-3 text-secondary">Glosario de Términos:</h6>
-                    <dl class="row">
-                        {% for g in data.modulo_educacion.glosario %}
-                            <dt class="col-sm-3 text-primary">{{ g.termino }}</dt>
-                            <dd class="col-sm-9 text-muted">{{ g.definicion }}</dd>
-                        {% endfor %}
-                    </dl>
-                {% endif %}
-
-                {% if data.modulo_educacion.preguntas_tipo_test %}
-                    <h6 class="fw-bold mt-3 text-secondary">Cuestionario de Repaso:</h6>
-                    {% for q in data.modulo_educacion.preguntas_tipo_test %}
-                        <div class="card p-3 mb-2 border-0 shadow-sm">
-                            <p class="fw-bold mb-2">{{ loop.index }}. {{ q.pregunta }}</p>
-                            <ul class="list-unstyled mb-2 ms-2">
-                                {% for opc in q.opciones %}
-                                    <li class="small text-secondary mb-1">{{ opc }}</li>
-                                {% endfor %}
-                            </ul>
-                            <details>
-                                <summary class="btn btn-sm btn-outline-primary py-0">Ver Respuesta Correcta</summary>
-                                <div class="p-2 mt-2 bg-light rounded border small">
-                                    <strong class="text-success">{{ q.respuesta_correcta }}</strong>
-                                    <p class="mb-0 text-muted mt-1">{{ q.explicacion }}</p>
-                                </div>
-                            </details>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            </div>
-            {% endif %}
-
             <!-- Salida Accionable -->
-            <div class="mb-2">
+            <div class="mb-4">
                 <h5 class="fw-bold text-secondary"><i class="bi bi-send-check me-2"></i>Recomendación Accionable y Propuesta</h5>
                 <div class="pre-box">{{ data.salida_accionable }}</div>
+            </div>
+
+            <!-- CAPA 9: PIE CON GARANTÍA DE PRIVACIDAD RGPD -->
+            <div class="text-center mt-4 pt-3 border-top text-muted small">
+                <i class="bi bi-shield-lock-fill text-success me-1"></i> Documento procesado bajo protocolo estricto RGPD. Memoria borrada al finalizar la sesión.
             </div>
 
         </div>
