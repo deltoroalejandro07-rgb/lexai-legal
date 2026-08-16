@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -15,6 +15,7 @@
         .badge-normal { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
         .glosario-item { background: #f1f5f9; border-left: 4px solid #2563eb; border-radius: 4px; padding: 12px; margin-bottom: 10px; }
         .test-card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; margin-bottom: 16px; background: #ffffff; }
+        .seccion-estudio { background-color: #f8fafc; border-left: 4px solid #0d6efd; padding: 16px; border-radius: 0 8px 8px 0; }
     </style>
 </head>
 <body class="py-4">
@@ -47,22 +48,26 @@
 
         <!-- RESUMEN PRINCIPAL -->
         <div class="card card-custom p-4">
-            <h5 class="fw-bold mb-3"><i class="bi bi-file-text me-2"></i>Visión General / Resumen</h5>
+            <h5 class="fw-bold mb-3"><i class="bi bi-file-text me-2"></i>Visión General / Resumen Marco</h5>
             <p class="lead text-secondary mb-0" style="font-size: 1.05rem; line-height: 1.7;">{{ data.get('resumen_ejecutivo', '') }}</p>
         </div>
 
         <!-- SECCIÓN EDUCACIÓN / ACADÉMICO -->
         {% if 'Educación' in data.get('categoria_documento', '') or data.get('modulo_educacion', {}).get('resumen_esquematico') %}
             
-            <!-- 1. RESUMEN ESQUEMÁTICO -->
+            <!-- 1. RESUMEN ESQUEMÁTICO DETALLADO DE ESTUDIO -->
             <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-diagram-3 me-2"></i>1. Resumen Esquemático del Contenido</h5>
-                <div class="list-group list-group-flush">
+                <h5 class="fw-bold mb-1 text-primary"><i class="bi bi-journal-bookmark-fill me-2"></i>1. Resumen Estructurado para el Estudio</h5>
+                <p class="text-muted small mb-4">Guía temática desarrollada sección por sección con conceptos y explicaciones clave para examen.</p>
+                
+                <div class="d-grid gap-3">
                     {% for item in data.get('modulo_educacion', {}).get('resumen_esquematico', []) %}
-                        <div class="list-group-item bg-transparent border-0 ps-0 mb-3">
+                        <div class="seccion-estudio mb-2">
                             {% if item is mapping %}
-                                <h6 class="fw-bold text-dark mb-1"><i class="bi bi-caret-right-fill text-primary me-1"></i> {{ item.get('titulo', '') }}</h6>
-                                <p class="text-secondary small mb-0 ps-3" style="line-height: 1.6;">{{ item.get('resumen_seccion', '') }}</p>
+                                <h5 class="fw-bold text-dark mb-2"><i class="bi bi-bookmark-star-fill text-primary me-2"></i>{{ item.get('titulo', '') }}</h5>
+                                <div class="text-secondary small" style="line-height: 1.8; white-space: pre-line; font-size: 0.95rem;">
+                                    {{ item.get('resumen_seccion', '') }}
+                                </div>
                             {% else %}
                                 <span class="fw-semibold text-secondary">{{ item }}</span>
                             {% endif %}
@@ -88,7 +93,10 @@
 
             <!-- 3. TEST DE AUTOEVALUACIÓN INTERACTIVO -->
             <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-patch-question me-2"></i>3. Test Interactivo de Autoevaluación</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-primary mb-0"><i class="bi bi-patch-question me-2"></i>3. Test Interactivo de Autoevaluación</h5>
+                    <span class="badge bg-primary rounded-pill">{{ data.get('modulo_educacion', {}).get('preguntas_tipo_test', [])|length }} preguntas</span>
+                </div>
                 <p class="text-muted small mb-4">Selecciona tu respuesta y despliega la solución para comprobar tu razonamiento.</p>
 
                 {% for q in data.get('modulo_educacion', {}).get('preguntas_tipo_test', []) %}
@@ -154,7 +162,7 @@
 
         <!-- RECOMENDACIÓN FINAL -->
         <div class="card card-custom p-4 bg-primary text-white">
-            <h5 class="fw-bold mb-2"><i class="bi bi-compass me-2"></i>Recomendación / Siguiente Paso</h5>
+            <h5 class="fw-bold mb-2"><i class="bi bi-compass me-2"></i>Recomendación / Plan de Estudio</h5>
             <p class="mb-0">{{ data.get('salida_accionable', '') }}</p>
         </div>
 
