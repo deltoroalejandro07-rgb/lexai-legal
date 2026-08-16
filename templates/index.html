@@ -3,78 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LexAI Enterprise 2.0 - Análisis Seguro</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <title>LexAI Enterprise 2.0</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <style>
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; min-height: 100vh; display: flex; align-items: center; }
-        .main-card { background: #ffffff; color: #1e293b; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-        .btn-custom { background: #2563eb; color: white; border-radius: 8px; font-weight: 600; padding: 12px 24px; }
-        .btn-custom:hover { background: #1d4ed8; color: white; }
-        .security-badge { background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 0.8rem; border-radius: 8px; padding: 10px; }
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hero-section { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 40px 0; margin-bottom: 30px; }
+        .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .btn-primary-custom { background-color: #1e3c72; border: none; font-weight: 600; padding: 12px 25px; border-radius: 8px; }
+        .btn-primary-custom:hover { background-color: #162d56; }
+        .role-group { display: none; }
     </style>
 </head>
 <body>
-    <div class="container py-5" style="max-width: 650px;">
-        <div class="main-card p-4 p-md-5">
-            <div class="text-center mb-4">
-                <h1 class="h3 fw-bold text-primary"><i class="bi bi-shield-check me-2"></i>LexAI Enterprise 2.0</h1>
-                <p class="text-muted small">Plataforma Segura con Verificación de Exactitud y Protección RGPD</p>
-            </div>
 
-            <form action="/" method="POST" enctype="multipart/form-data">
-                
-                <div class="mb-3">
-                    <label class="form-label fw-bold text-secondary"><i class="bi bi-person-badge me-1"></i> Selecciona tu rol en el documento:</label>
-                    <select name="rol_usuario" class="class-select form-select">
-                        <option value="General / Neutro" selected>General / Análisis Neutro</option>
+<div class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-4 font-weight-bold">LexAI Enterprise 2.0</h1>
+        <p class="lead">Plataforma de Análisis e Inteligencia Documental con Control Normativo</p>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card card-custom p-4">
+                <form action="/" method="POST" enctype="multipart/form-data">
+                    
+                    <!-- SUBIDA DE ARCHIVO -->
+                    <div class="form-group mb-4">
+                        <label for="file" class="font-weight-bold text-dark">Documento PDF (Máximo 50 páginas):</label>
+                        <input type="file" class="form-control-file p-2 style-file" id="file" name="file" accept=".pdf" required style="border: 2px dashed #ccc; border-radius: 8px;">
+                        <small class="form-text text-muted">Asegúrate de que el PDF tenga texto seleccionable.</small>
+                    </div>
+
+                    <!-- SELECTOR DE CATEGORÍA -->
+                    <div class="form-group mb-4">
+                        <label for="categoria" class="font-weight-bold text-dark">Categoría del Documento:</label>
+                        <select class="form-control" id="categoria" onchange="mostrarRoles()">
+                            <option value="inmobiliario">Inmobiliario / Contratos</option>
+                            <option value="legal">Legal / Judicial / Laboral</option>
+                            <option value="financiero">Financiero / Facturación</option>
+                            <option value="educacion">Educación / Académico</option>
+                            <option value="general">General / Otros</option>
+                        </select>
+                    </div>
+
+                    <!-- SELECTOR DE ROLES DINÁMICO -->
+                    <div class="form-group mb-4">
+                        <label for="rol_usuario_select" class="font-weight-bold text-dark">Rol o Perspectiva del Análisis:</label>
+                        <input type="hidden" name="rol_usuario" id="rol_usuario_final" value="Comprador / Inversor">
                         
-                        <optgroup label="Inmobiliario y Alquileres">
-                            <option value="Arrendatario / Inquilino">Arrendatario / Inquilino</option>
-                            <option value="Arrendador / Propietario">Arrendador / Propietario</option>
-                            <option value="Comprador / Cliente">Comprador / Cliente</option>
-                        </optgroup>
+                        <!-- Inmobiliario -->
+                        <div id="group_inmobiliario" class="role-group">
+                            <select class="form-control" id="select_inmobiliario" onchange="actualizarRolFinal(this)">
+                                <option value="Comprador / Inversor">Comprador / Inversor</option>
+                                <option value="Vendedor / Propietario">Vendedor / Propietario</option>
+                                <option value="Arrendatario / Inquilino">Arrendatario / Inquilino</option>
+                                <option value="Arrendador / Propietario">Arrendador / Propietario</option>
+                                <option value="Gestor / Asesor profesional">Gestor / Asesor profesional</option>
+                            </select>
+                        </div>
 
-                        <optgroup label="Financiero y Facturación">
-                            <option value="Cliente / Pagador (Receptor)">Cliente / Pagador (Receptor de Factura)</option>
-                            <option value="Proveedor / Emisor (Cobrador)">Proveedor / Emisor (Cobrador)</option>
-                            <option value="Contable / Auditor Fiscal">Contable / Auditor Fiscal</option>
-                        </optgroup>
+                        <!-- Legal -->
+                        <div id="group_legal" class="role-group">
+                            <select class="form-control" id="select_legal" onchange="actualizarRolFinal(this)">
+                                <option value="Demandante / Parte Activa">Demandante / Parte Activa</option>
+                                <option value="Demandado / Parte Pasiva">Demandado / Parte Pasiva</option>
+                                <option value="Empleado / Trabajador">Empleado / Trabajador</option>
+                                <option value="Empleador / Empresa">Empleador / Empresa</option>
+                                <option value="Gestor / Asesor profesional">Gestor / Asesor profesional</option>
+                            </select>
+                        </div>
 
-                        <optgroup label="Legal, Judicial y Laboral">
-                            <option value="Demandado / Acusado">Demandado / Acusado</option>
-                            <option value="Demandante / Acusación">Demandante / Acusación</option>
-                            <option value="Empleado / Trabajador">Empleado / Trabajador</option>
-                            <option value="Empleador / Empresa">Empleador / Empresa</option>
-                        </optgroup>
+                        <!-- Financiero -->
+                        <div id="group_financiero" class="role-group">
+                            <select class="form-control" id="select_financiero" onchange="actualizarRolFinal(this)">
+                                <option value="Cliente / Receptor del Servicio">Cliente / Receptor del Servicio</option>
+                                <option value="Proveedor / Emisor de Factura">Proveedor / Emisor de Factura</option>
+                                <option value="Contable / Auditor Interno">Contable / Auditor Interno</option>
+                                <option value="Gestor / Asesor profesional">Gestor / Asesor profesional</option>
+                            </select>
+                        </div>
 
-                        <optgroup label="Educación y Estudio">
-                            <option value="Estudiante / Opositor">Estudiante / Opositor</option>
-                        </optgroup>
-                    </select>
-                </div>
+                        <!-- Educación -->
+                        <div id="group_educacion" class="role-group">
+                            <select class="form-control" id="select_educacion" onchange="actualizarRolFinal(this)">
+                                <option value="Estudiante / Alumno">Estudiante / Alumno</option>
+                                <option value="Profesor / Docente">Profesor / Docente</option>
+                            </select>
+                        </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-bold text-secondary"><i class="bi bi-file-earmark-pdf me-1"></i> Documento PDF a analizar:</label>
-                    <input type="file" name="file" accept=".pdf" class="form-control" required>
-                </div>
+                        <!-- General -->
+                        <div id="group_general" class="role-group">
+                            <select class="form-control" id="select_general" onchange="actualizarRolFinal(this)">
+                                <option value="General / Neutro">General / Neutro</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <div class="form-check form-switch mb-4">
-                    <input class="form-check-input" type="checkbox" name="anonimizar_datos" id="anonimizar_datos" checked>
-                    <label class="form-check-label small fw-bold text-secondary" for="anonimizar_datos">
-                        <i class="bi bi-incognito me-1"></i> Enmascarar automáticamente DNI, Teléfonos y Correos (RGPD)
-                    </label>
-                </div>
+                    <!-- ANONIMIZACIÓN Y RGPD -->
+                    <div class="form-group form-check mb-4">
+                        <input type="checkbox" class="form-check-input" id="anonimizar_datos" name="anonimizar_datos">
+                        <label class="form-check-label text-secondary" for="anonimizar_datos">
+                            🔒 Activar modo anonimización sensible (Redactar DNI, NIE, Emails y Teléfonos)
+                        </label>
+                    </div>
 
-                <div class="security-badge mb-4">
-                    <i class="bi bi-lock-fill me-1"></i> <strong>Procesamiento en RAM efímera:</strong> El archivo se procesa únicamente en la memoria volátil del servidor y se elimina de forma inmediata tras el análisis. Ningún documento queda almacenado.
-                </div>
-
-                <button type="submit" class="btn btn-custom w-100">
-                    <i class="bi bi-cpu me-2"></i> Procesar, Verificar y Analizar
-                </button>
-            </form>
+                    <!-- BOTÓN DE ENVÍO -->
+                    <button type="submit" class="btn btn-primary-custom btn-block btn-lg text-white">
+                        Analizar Documento
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
+</div>
+
+<script>
+function mostrarRoles() {
+    var cat = document.getElementById("categoria").value;
+    var groups = document.getElementsByClassName("role-group");
+    for (var i = 0; i < groups.length; i++) {
+        groups[i].style.display = "none";
+    }
+    
+    var activeGroup = document.getElementById("group_" + cat);
+    if (activeGroup) {
+        activeGroup.style.display = "block";
+        var select = activeGroup.querySelector("select");
+        actualizarRolFinal(select);
+    }
+}
+
+function actualizarRolFinal(selectElement) {
+    document.getElementById("rol_usuario_final").value = selectElement.value;
+}
+
+window.onload = function() {
+    mostrarRoles();
+};
+</script>
+
 </body>
 </html>
