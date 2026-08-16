@@ -8,7 +8,7 @@ import pypdf
 
 app = Flask(__name__)
 
-# LÍMITE MÁXIMO GLOBAL DE PÁGINAS PERMITIDAS PARA TODAS LAS CATEGORÍAS
+# LÍMITE MÁXIMO GLOBAL DE PÁGINAS PERMITIDAS
 LIMITE_MAX_PAGINAS = 50
 
 def verificar_exactitud_datos(texto_pdf, json_analisis):
@@ -96,7 +96,7 @@ def index():
                 pdf_reader = pypdf.PdfReader(file_stream)
                 total_paginas = len(pdf_reader.pages)
                 
-                # COMPROBACIÓN DE LÍMITE MÁXIMO DE 50 PÁGINAS (APLICA A TODAS LAS CATEGORÍAS)
+                # COMPROBACIÓN DE LÍMITE MÁXIMO DE 50 PÁGINAS
                 if total_paginas > LIMITE_MAX_PAGINAS:
                     mensaje_exceso = (
                         f"Este documento tiene {total_paginas} páginas y supera nuestro límite actual de {LIMITE_MAX_PAGINAS} páginas por análisis. "
@@ -124,7 +124,8 @@ def index():
                 if not texto_extraido.strip():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
-                num_preguntas_test = min(20, max(10, total_paginas // 3))
+                # AJUSTADO HASTA 30 PREGUNTAS MÁXIMO
+                num_preguntas_test = min(30, max(10, total_paginas * 3 // 5))
 
                 prompt_sistema = f"""
                 Eres LexAI Enterprise 2.0, profesor y tutor académico de máximo nivel universitario.
@@ -135,7 +136,7 @@ def index():
                 1. CATEGORÍA "Educación/Académico" (Apuntes, libros, artículos, temarios):
                    - NO GENERAR RIESGOS NI CLÁUSULAS CRÍTICAS. Dejar "puntos_criticos_con_riesgo" VACÍO [].
                    - Genera dentro del objeto "modulo_educacion":
-                     a) "resumen_esquematico": Identifica y selecciona los 6 a 10 APARTADOS O CONCEPTOS MÁS IMPORTANTES Y RELEVANTES del temario. Para cada uno, genera un objeto con "titulo" (ej. "1. Principales modelos de navegación") y "resumen_seccion". El "resumen_seccion" DEBE SER UN RESUMEN AMPLIO, EXTENSO Y PROFUNDO DE 2 A 3 PÁRRAFOS COMPLETOS (mínimo 10-15 líneas por apartado), explicando con el mayor detalle pedagógico posible las ideas clave, fórmulas, normativas o teorías esenciales para que sirva directamente como material de estudio para un examen.
+                     a) "resumen_esquematico": Identifica y selecciona los 6 a 10 APARTADOS O CONCEPTOS MÁS IMPORTANTES Y RELEVANTES del temario. Para cada uno, genera un objeto con "titulo" y "resumen_seccion". El "resumen_seccion" DEBE SER UN RESUMEN AMPLIO, EXTENSO Y PROFUNDO DE 2 A 3 PÁRRAFOS COMPLETOS (mínimo 10-15 líneas por apartado), explicando con el mayor detalle pedagógico posible las ideas clave, fórmulas, normativas o teorías esenciales para que sirva directamente como material de estudio para un examen.
                      b) "glosario": 8 a 12 términos técnicos más importantes con sus definiciones pedagógicas exhaustivas.
                      c) "preguntas_tipo_test": DEBES GENERAR EXACTAMENTE {num_preguntas_test} preguntas tipo test académicas distribuidas de forma equitativa por todo el contenido. Cada objeto debe tener: 'id', 'pregunta', 'opciones' (4 opciones), 'respuesta_correcta' (A, B, C o D) y 'explicacion_detallada'.
 
