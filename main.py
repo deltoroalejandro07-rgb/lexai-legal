@@ -109,6 +109,8 @@ def index():
                         "tipo_documento": f"Documento Excedido ({total_paginas} págs.)",
                         "resumen_ejecutivo": mensaje_exceso,
                         "puntos_criticos_con_riesgo": [],
+                        "checklist_profesional": [],
+                        "preguntas_cliente": [],
                         "fechas_y_plazos_urgentes": [],
                         "modulo_educacion": {"resumen_esquematico": [], "glosario": [], "preguntas_tipo_test": []},
                         "salida_accionable": "Divide el archivo e inténtalo de nuevo.",
@@ -124,50 +126,64 @@ def index():
                 if not texto_extraido.strip():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
-                # Límite de texto optimizado para velocidad rápida sin ahogar la API
                 texto_enviado = texto_extraido[:90000]
-
-                # Número de preguntas bien ajustado para la categoría académica
                 num_preguntas_test = min(20, max(10, total_paginas // 2))
 
+                # LÓGICA ESPECÍFICA PARA EL NUEVO ROL "Gestor / Asesor profesional"
+                es_asesor = (rol_usuario == "Gestor / Asesor profesional")
+
+                if es_asesor:
+                    instrucciones_asesor = """
+                    INSTRUCCIONES ESPECIALES PARA EL ROL "Gestor / Asesor profesional":
+                    - TONO Y TÉCNICA: Usa un lenguaje estrictamente jurídico, fiscal o contable experto (técnico, conciso, directivo). No traduzcas a lenguaje llano ni expliques conceptos básicos (el usuario es un profesional).
+                    - REFERENCIAS LEGALES: Fundamenta los riesgos citando expresamente artículos de leyes españolas (LAU, Ley Hipotecaria, Código Civil, LGT, ET, LEC, etc.) o reglamentos aplicables.
+                    - ENFOQUE: Prioriza detección de omisiones contractuales, cláusulas abusivas/inoperantes y riesgos de responsabilidad profesional.
+                    - INCLUIR EN EL JSON:
+                      a) "checklist_profesional": Array de 5 a 8 puntos técnicos de verificación administrativa/legal previa (ej. "Verificar titularidad en Registro de la Propiedad", "Comprobar estar al corriente de pagos en Comunidad de Propietarios").
+                      b) "preguntas_cliente": Array de 3 a 5 preguntas clave que el profesional debe hacerle a su cliente para completar la valoración.
+                      c) "salida_accionable": Redactar en formato de recomendación dictaminada hacia el cliente (ej. "Recomendación al cliente: No firmar hasta subsanar la cláusula X referente a...").
+                    """
+                else:
+                    instrucciones_asesor = """
+                    - MANTENER ESTRUCTURA HABITUAL: Dejar los arrays "checklist_profesional" y "preguntas_cliente" VACÍOS [].
+                    """
+
                 prompt_sistema = f"""
-                Eres LexAI Enterprise 2.0, profesor y tutor académico universitario.
-                Analizarás el documento para el ROL DEL USUARIO: "{rol_usuario}".
+                Eres LexAI Enterprise 2.0, consultor y auditor legal/financiero de alto nivel.
+                Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
+
+                {instrucciones_asesor}
 
                 INSTRUCCIONES ESPECÍFICAS SEGÚN CATEGORÍA:
 
                 1. CATEGORÍA "Educación/Académico":
                    - "puntos_criticos_con_riesgo" DEBE ESTAR VACÍO [].
+                   - "checklist_profesional" y "preguntas_cliente" DEBEN ESTAR VACÍOS [].
                    - En "modulo_educacion":
                      a) "resumen_esquematico": Extrae entre 5 y 8 APARTADOS CLAVE del temario. Cada uno con "titulo" y "resumen_seccion" (1 a 2 párrafos concisos de alto valor explicativo).
                      b) "glosario": 8 términos clave con definición concisa.
-                     c) "preguntas_tipo_test": Genera EXACTAMENTE {num_preguntas_test} preguntas tipo test. IMPORTANTE: La 'explicacion_detallada' de cada pregunta debe ser MUY BREVE (máximo 1 frase corta) para maximizar velocidad.
+                     c) "preguntas_tipo_test": Genera EXACTAMENTE {num_preguntas_test} preguntas tipo test. La 'explicacion_detallada' de cada pregunta debe ser MUY BREVE (máximo 1 frase corta).
 
                 2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
-                   - Evaluar cláusulas o descuadres numéricos en "puntos_criticos_con_riesgo".
+                   - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
                    - Dejar "modulo_educacion" con arrays vacíos.
 
                 ESTRUCTURA JSON OBLIGATORIA:
                 {{
                   "categoria_documento": "Educación/Académico | Inmobiliario/Contratos | Financiero/Facturación | Legal/Judicial | Recursos Humanos | Salud/Seguros | General",
                   "tipo_documento": "Tipo exacto del archivo",
-                  "resumen_ejecutivo": "Síntesis general pedagógica.",
+                  "resumen_ejecutivo": "Síntesis técnica del documento.",
                   "puntos_criticos_con_riesgo": [],
+                  "checklist_profesional": [],
+                  "preguntas_cliente": [],
                   "modulo_educacion": {{
-                    "resumen_esquematico": [
-                      {{
-                        "titulo": "1. Nombre del Tema", 
-                        "resumen_seccion": "Explicación del concepto..."
-                      }}
-                    ],
-                    "glosario": [
-                      {{"termino": "Concepto", "definicion": "Definición corta."}}
-                    ],
+                    "resumen_esquematico": [],
+                    "glosario": [],
                     "preguntas_tipo_test": []
                   }},
                   "fechas_y_plazos_urgentes": [],
-                  "salida_accionable": "Plan de estudio aconsejado.",
-                  "disclaimer": "Material procesado para fines educativos."
+                  "salida_accionable": "Dictamen o recomendación técnica final.",
+                  "disclaimer": "Material procesado automáticamente."
                 }}
                 """
 
@@ -197,6 +213,9 @@ def index():
                 contenido = response_json["choices"][0]["message"]["content"]
                 data = json.loads(contenido)
                 
+                # Garantizar claves mínimas
+                data.setdefault("checklist_profesional", [])
+                data.setdefault("preguntas_cliente", [])
                 if "modulo_educacion" not in data:
                     data["modulo_educacion"] = {"resumen_esquematico": [], "glosario": [], "preguntas_tipo_test": []}
 
@@ -234,6 +253,8 @@ def index():
                     "tipo_documento": "Error en procesamiento",
                     "resumen_ejecutivo": f"No se pudo completar el análisis: {str(e)}",
                     "puntos_criticos_con_riesgo": [],
+                    "checklist_profesional": [],
+                    "preguntas_cliente": [],
                     "fechas_y_plazos_urgentes": [],
                     "modulo_educacion": {"resumen_esquematico": [], "glosario": [], "preguntas_tipo_test": []},
                     "salida_accionable": "Inténtelo de nuevo.",
