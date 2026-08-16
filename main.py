@@ -124,47 +124,47 @@ def index():
                 if not texto_extraido.strip():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
-                # AJUSTADO HASTA 30 PREGUNTAS MÁXIMO
-                num_preguntas_test = min(30, max(10, total_paginas * 3 // 5))
+                # MÁXIMO CONCISO DE PREGUNTAS (10 A 20) PARA EVITAR TIMEOUT DE RENDER
+                num_preguntas_test = min(20, max(10, total_paginas // 2))
 
                 prompt_sistema = f"""
-                Eres LexAI Enterprise 2.0, profesor y tutor académico de máximo nivel universitario.
-                Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
+                Eres LexAI Enterprise 2.0, profesor y tutor académico universitario.
+                Analizarás el documento para el ROL DEL USUARIO: "{rol_usuario}".
 
                 INSTRUCCIONES ESPECÍFICAS SEGÚN CATEGORÍA:
 
-                1. CATEGORÍA "Educación/Académico" (Apuntes, libros, artículos, temarios):
-                   - NO GENERAR RIESGOS NI CLÁUSULAS CRÍTICAS. Dejar "puntos_criticos_con_riesgo" VACÍO [].
-                   - Genera dentro del objeto "modulo_educacion":
-                     a) "resumen_esquematico": Identifica y selecciona los 6 a 10 APARTADOS O CONCEPTOS MÁS IMPORTANTES Y RELEVANTES del temario. Para cada uno, genera un objeto con "titulo" y "resumen_seccion". El "resumen_seccion" DEBE SER UN RESUMEN AMPLIO, EXTENSO Y PROFUNDO DE 2 A 3 PÁRRAFOS COMPLETOS (mínimo 10-15 líneas por apartado), explicando con el mayor detalle pedagógico posible las ideas clave, fórmulas, normativas o teorías esenciales para que sirva directamente como material de estudio para un examen.
-                     b) "glosario": 8 a 12 términos técnicos más importantes con sus definiciones pedagógicas exhaustivas.
-                     c) "preguntas_tipo_test": DEBES GENERAR EXACTAMENTE {num_preguntas_test} preguntas tipo test académicas distribuidas de forma equitativa por todo el contenido. Cada objeto debe tener: 'id', 'pregunta', 'opciones' (4 opciones), 'respuesta_correcta' (A, B, C o D) y 'explicacion_detallada'.
+                1. CATEGORÍA "Educación/Académico":
+                   - "puntos_criticos_con_riesgo" DEBE ESTAR VACÍO [].
+                   - En "modulo_educacion":
+                     a) "resumen_esquematico": Extrae entre 5 y 8 APARTADOS CLAVE. Cada apartado debe tener "titulo" y "resumen_seccion" (2 párrafos concisos y explicativos de alto valor académico).
+                     b) "glosario": 6 a 10 términos clave con su definición.
+                     c) "preguntas_tipo_test": Genera EXACTAMENTE {num_preguntas_test} preguntas tipo test concisas (4 opciones A,B,C,D + respuesta_correcta + explicacion_detallada corta).
 
                 2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
-                   - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
+                   - Evaluar cláusulas o descuadres numéricos en "puntos_criticos_con_riesgo".
                    - Dejar "modulo_educacion" con arrays vacíos.
 
-                ESTRUCTURA DE RESPUESTA REQUERIDA (JSON VÁLIDO):
+                ESTRUCTURA JSON OBLIGATORIA:
                 {{
                   "categoria_documento": "Educación/Académico | Inmobiliario/Contratos | Financiero/Facturación | Legal/Judicial | Recursos Humanos | Salud/Seguros | General",
                   "tipo_documento": "Tipo exacto del archivo",
-                  "resumen_ejecutivo": "Visión general pedagógica y marco sintético completo del documento académico.",
+                  "resumen_ejecutivo": "Síntesis general pedagógica.",
                   "puntos_criticos_con_riesgo": [],
                   "modulo_educacion": {{
                     "resumen_esquematico": [
                       {{
-                        "titulo": "1. Título del Tema Clave", 
-                        "resumen_seccion": "Primer párrafo amplio desarrollando los conceptos centrales y definiciones fundamentales...\n\nSegundo párrafo explicando las implicaciones prácticas, fórmulas o casos particulares..."
+                        "titulo": "1. Nombre del Tema", 
+                        "resumen_seccion": "Explicación del concepto...\n\nAplicación práctica o detalle..."
                       }}
                     ],
                     "glosario": [
-                      {{"termino": "Concepto", "definicion": "Definición profunda."}}
+                      {{"termino": "Concepto", "definicion": "Definición corta."}}
                     ],
                     "preguntas_tipo_test": []
                   }},
                   "fechas_y_plazos_urgentes": [],
-                  "salida_accionable": "Plan de estudio recomendado para asimilar el temario de forma óptima.",
-                  "disclaimer": "Este material ha sido procesado automáticamente con fines educativos."
+                  "salida_accionable": "Plan de estudio aconsejado.",
+                  "disclaimer": "Material procesado para fines educativos."
                 }}
                 """
 
@@ -178,13 +178,14 @@ def index():
                     "response_format": {"type": "json_object"},
                     "messages": [
                         {"role": "system", "content": prompt_sistema},
-                        {"role": "user", "content": f"Documento ({total_paginas} págs.) para Rol {rol_usuario}:\n\n{texto_extraido[:100000]}"}
+                        {"role": "user", "content": f"Documento ({total_paginas} págs.):\n\n{texto_extraido[:70000]}"}
                     ],
                     "temperature": 0.2,
-                    "max_tokens": 6000
+                    "max_tokens": 4000
                 }
 
-                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=90)
+                # Timeout preventivo en la petición
+                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=50)
                 response_json = response.json()
 
                 if response.status_code != 200:
@@ -205,9 +206,9 @@ def index():
                     if descuadre.get("hay_descuadre"):
                         data.setdefault("puntos_criticos_con_riesgo", []).insert(0, {
                             "nivel": "🔴 CRÍTICO",
-                            "punto": f"Discrepancia y error de cálculo aritmético: La suma de Base Imponible + Impuestos resulta en {descuadre['base_impuestos']}€, pero el TOTAL A PAGAR indicado en el documento es de {descuadre['total_declarado']}€ (diferencia no justificada de {descuadre['diferencia']}€).",
+                            "punto": f"Discrepancia numórica: La suma da {descuadre['base_impuestos']}€ pero el TOTAL es {descuadre['total_declarado']}€ (diferencia de {descuadre['diferencia']}€).",
                             "pagina": "Pág. 1",
-                            "contraste_estandar": "Normativa de Facturación (Suma de Base + IVA)"
+                            "contraste_estandar": "Normativa de Facturación"
                         })
 
                 if anonimizar:
@@ -233,7 +234,7 @@ def index():
                     "puntos_criticos_con_riesgo": [],
                     "fechas_y_plazos_urgentes": [],
                     "modulo_educacion": {"resumen_esquematico": [], "glosario": [], "preguntas_tipo_test": []},
-                    "salida_accionable": "Inténtelo de nuevo.",
+                    "salida_accionable": "Inténtelo de nuevo con un PDF más corto.",
                     "verificacion_exactitud": {"score_exactitud": 0, "total_cifras_verificadas": 0, "cifras_validadas": 0, "advertencia_alucinacion": []},
                     "disclaimer": ""
                 }
