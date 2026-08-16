@@ -14,9 +14,16 @@ LIMITE_MAX_PAGINAS = 50
 def verificar_exactitud_datos(texto_pdf, json_analisis):
     texto_limpio = " ".join(texto_pdf.lower().split())
     
-    texto_a_verificar = json_analisis.get("resumen_ejecutivo", "") + " "
-    for p in json_analisis.get("puntos_criticos_con_riesgo", []):
-        texto_a_verificar += p.get("punto", "") + " "
+    texto_a_verificar = str(json_analisis.get("resumen_ejecutivo", "")) + " "
+    
+    # Validación segura para evitar el error 'str' object has no attribute 'get'
+    puntos_criticos = json_analisis.get("puntos_criticos_con_riesgo", [])
+    if isinstance(puntos_criticos, list):
+        for p in puntos_criticos:
+            if isinstance(p, dict):
+                texto_a_verificar += str(p.get("punto", "")) + " "
+            elif isinstance(p, str):
+                texto_a_verificar += p + " "
     
     patron_cifras = r'\b(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,2})?\s*(?:€|euros?|\$|USD|%)\b'
     cifras_encontradas = re.findall(patron_cifras, texto_a_verificar, re.IGNORECASE)
@@ -135,13 +142,13 @@ def index():
                 if es_asesor:
                     instrucciones_asesor = """
                     INSTRUCCIONES ESPECIALES PARA EL ROL "Gestor / Asesor profesional":
-                    - TONO Y TÉCNICA: Usa un lenguaje estrictamente jurídico, fiscal o contable experto (técnico, conciso, directivo). No traduzcas a lenguaje llano ni expliques conceptos básicos (el usuario es un profesional).
+                    - TONO Y TÉCNICA: Usa un lenguaje strictly jurídico, fiscal o contable experto (técnico, conciso, directivo). No traduzcas a lenguaje llano ni expliques conceptos básicos.
                     - REFERENCIAS LEGALES: Fundamenta los riesgos citando expresamente artículos de leyes españolas (LAU, Ley Hipotecaria, Código Civil, LGT, ET, LEC, etc.) o reglamentos aplicables.
                     - ENFOQUE: Prioriza detección de omisiones contractuales, cláusulas abusivas/inoperantes y riesgos de responsabilidad profesional.
                     - INCLUIR EN EL JSON:
-                      a) "checklist_profesional": Array de 5 a 8 puntos técnicos de verificación administrativa/legal previa (ej. "Verificar titularidad en Registro de la Propiedad", "Comprobar estar al corriente de pagos en Comunidad de Propietarios").
-                      b) "preguntas_cliente": Array de 3 a 5 preguntas clave que el profesional debe hacerle a su cliente para completar la valoración.
-                      c) "salida_accionable": Redactar en formato de recomendación dictaminada hacia el cliente (ej. "Recomendación al cliente: No firmar hasta subsanar la cláusula X referente a...").
+                      a) "checklist_profesional": Array de 5 a 8 cadenas de texto con puntos técnicos de verificación administrativa/legal previa.
+                      b) "preguntas_cliente": Array de 3 a 5 cadenas de texto con preguntas clave que el profesional debe hacerle a su cliente.
+                      c) "salida_accionable": Redactar en formato de recomendación dictaminada hacia el cliente.
                     """
                 else:
                     instrucciones_asesor = """
@@ -160,9 +167,9 @@ def index():
                    - "puntos_criticos_con_riesgo" DEBE ESTAR VACÍO [].
                    - "checklist_profesional" y "preguntas_cliente" DEBEN ESTAR VACÍOS [].
                    - En "modulo_educacion":
-                     a) "resumen_esquematico": Extrae entre 5 y 8 APARTADOS CLAVE del temario. Cada uno con "titulo" y "resumen_seccion" (1 a 2 párrafos concisos de alto valor explicativo).
+                     a) "resumen_esquematico": Extrae entre 5 y 8 APARTADOS CLAVE del temario. Cada uno con "titulo" y "resumen_seccion".
                      b) "glosario": 8 términos clave con definición concisa.
-                     c) "preguntas_tipo_test": Genera EXACTAMENTE {num_preguntas_test} preguntas tipo test. La 'explicacion_detallada' de cada pregunta debe ser MUY BREVE (máximo 1 frase corta).
+                     c) "preguntas_tipo_test": Genera EXACTAMENTE {num_preguntas_test} preguntas tipo test con 'explicacion_detallada' MUY BREVE.
 
                 2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
                    - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
@@ -173,7 +180,14 @@ def index():
                   "categoria_documento": "Educación/Académico | Inmobiliario/Contratos | Financiero/Facturación | Legal/Judicial | Recursos Humanos | Salud/Seguros | General",
                   "tipo_documento": "Tipo exacto del archivo",
                   "resumen_ejecutivo": "Síntesis técnica del documento.",
-                  "puntos_criticos_con_riesgo": [],
+                  "puntos_criticos_con_riesgo": [
+                    {{
+                      "nivel": "🔴 CRÍTICO | 🟡 ATENCIÓN | 🔵 INFORMATIVO",
+                      "pagina": "Pág. X",
+                      "punto": "Descripción del riesgo",
+                      "contraste_estandar": "Normativa aplicable"
+                    }}
+                  ],
                   "checklist_profesional": [],
                   "preguntas_cliente": [],
                   "modulo_educacion": {{
