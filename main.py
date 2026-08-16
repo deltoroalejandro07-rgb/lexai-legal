@@ -8,6 +8,9 @@ import pypdf
 
 app = Flask(__name__)
 
+# LÍMITE MÁXIMO GLOBAL DE PÁGINAS PERMITIDAS PARA TODAS LAS CATEGORÍAS
+LIMITE_MAX_PAGINAS = 50
+
 def verificar_exactitud_datos(texto_pdf, json_analisis):
     texto_limpio = " ".join(texto_pdf.lower().split())
     
@@ -93,25 +96,38 @@ def index():
                 pdf_reader = pypdf.PdfReader(file_stream)
                 total_paginas = len(pdf_reader.pages)
                 
+                # COMPROBACIÓN DE LÍMITE MÁXIMO DE 50 PÁGINAS (APLICA A TODAS LAS CATEGORÍAS)
+                if total_paginas > LIMITE_MAX_PAGINAS:
+                    mensaje_exceso = (
+                        f"Este documento tiene {total_paginas} páginas y supera nuestro límite actual de {LIMITE_MAX_PAGINAS} páginas por análisis. "
+                        f"Para procesarlo, divide el PDF en partes de máximo {LIMITE_MAX_PAGINAS} páginas cada una y súbelas por separado. "
+                        f"Puedes dividir el PDF fácilmente con herramientas gratuitas como ilovepdf.com o smallpdf.com, o usando 'Vista Previa' en Mac."
+                    )
+                    
+                    error_data = {
+                        "categoria_documento": "Aviso de Tamaño",
+                        "tipo_documento": f"Documento Excedido ({total_paginas} págs.)",
+                        "resumen_ejecutivo": mensaje_exceso,
+                        "puntos_criticos_con_riesgo": [],
+                        "fechas_y_plazos_urgentes": [],
+                        "modulo_educacion": {"resumen_esquematico": [], "glosario": [], "preguntas_tipo_test": []},
+                        "salida_accionable": "Divide el archivo e inténtalo de nuevo.",
+                        "verificacion_exactitud": {"score_exactitud": 100, "total_cifras_verificadas": 0, "cifras_validadas": 0, "advertencia_alucinacion": []},
+                        "disclaimer": "Límite de páginas alcanzado."
+                    }
+                    return render_template("resultado.html", data=error_data)
+
                 texto_extraido = ""
-                
-                # Muestreo eficiente para evitar sobrecargar tokens de entrada
-                if total_paginas <= 20:
-                    for i in range(total_paginas):
-                        texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
-                else:
-                    paso = max(1, total_paginas // 25)
-                    for i in range(0, total_paginas, paso):
-                        texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
+                for i in range(total_paginas):
+                    texto_extraido += f"\n--- PÁGINA {i+1} ---\n" + (pdf_reader.pages[i].extract_text() or "")
 
                 if not texto_extraido.strip():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
-                # Límite óptimo de preguntas para velocidad ultrarrápida (Evita Timeout 502)
-                num_preguntas_test = min(15, max(8, total_paginas // 5))
+                num_preguntas_test = min(20, max(10, total_paginas // 3))
 
                 prompt_sistema = f"""
-                Eres LexAI Enterprise 2.0, profesor y tutor académico.
+                Eres LexAI Enterprise 2.0, profesor y tutor académico de máximo nivel universitario.
                 Analizarás el documento considerando la posición o ROL DEL USUARIO: "{rol_usuario}".
 
                 INSTRUCCIONES ESPECÍFICAS SEGÚN CATEGORÍA:
@@ -119,9 +135,9 @@ def index():
                 1. CATEGORÍA "Educación/Académico" (Apuntes, libros, artículos, temarios):
                    - NO GENERAR RIESGOS NI CLÁUSULAS CRÍTICAS. Dejar "puntos_criticos_con_riesgo" VACÍO [].
                    - Genera dentro del objeto "modulo_educacion":
-                     a) "resumen_esquematico": Lista de objetos con "titulo" y "resumen_seccion". Cada "resumen_seccion" debe ser un resumen denso de 2 párrafos bien explicados (ideas clave, conceptos y teorías principales para estudiar un examen).
-                     b) "glosario": 8 a 10 términos técnicos con sus definiciones (objetos con keys "termino" y "definicion").
-                     c) "preguntas_tipo_test": DEBES GENERAR EXACTAMENTE {num_preguntas_test} PREGUNTAS TIPO TEST. Cada objeto debe tener: 'id', 'pregunta', 'opciones' (4 opciones), 'respuesta_correcta' (A, B, C o D) y 'explicacion_detallada'.
+                     a) "resumen_esquematico": Identifica y selecciona los 6 a 10 APARTADOS O CONCEPTOS MÁS IMPORTANTES Y RELEVANTES del temario. Para cada uno, genera un objeto con "titulo" (ej. "1. Principales modelos de navegación") y "resumen_seccion". El "resumen_seccion" DEBE SER UN RESUMEN AMPLIO, EXTENSO Y PROFUNDO DE 2 A 3 PÁRRAFOS COMPLETOS (mínimo 10-15 líneas por apartado), explicando con el mayor detalle pedagógico posible las ideas clave, fórmulas, normativas o teorías esenciales para que sirva directamente como material de estudio para un examen.
+                     b) "glosario": 8 a 12 términos técnicos más importantes con sus definiciones pedagógicas exhaustivas.
+                     c) "preguntas_tipo_test": DEBES GENERAR EXACTAMENTE {num_preguntas_test} preguntas tipo test académicas distribuidas de forma equitativa por todo el contenido. Cada objeto debe tener: 'id', 'pregunta', 'opciones' (4 opciones), 'respuesta_correcta' (A, B, C o D) y 'explicacion_detallada'.
 
                 2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
                    - Evaluar cláusulas, leyes imperativas o descuadres numéricos en "puntos_criticos_con_riesgo".
@@ -131,30 +147,22 @@ def index():
                 {{
                   "categoria_documento": "Educación/Académico | Inmobiliario/Contratos | Financiero/Facturación | Legal/Judicial | Recursos Humanos | Salud/Seguros | General",
                   "tipo_documento": "Tipo exacto del archivo",
-                  "resumen_ejecutivo": "Visión general pedagógica del documento académico.",
+                  "resumen_ejecutivo": "Visión general pedagógica y marco sintético completo del documento académico.",
                   "puntos_criticos_con_riesgo": [],
                   "modulo_educacion": {{
                     "resumen_esquematico": [
                       {{
-                        "titulo": "1.1 Concepto", 
-                        "resumen_seccion": "Explicación detallada de 2 párrafos completos sobre este apartado..."
+                        "titulo": "1. Título del Tema Clave", 
+                        "resumen_seccion": "Primer párrafo amplio desarrollando los conceptos centrales y definiciones fundamentales...\n\nSegundo párrafo explicando las implicaciones prácticas, fórmulas o casos particulares..."
                       }}
                     ],
                     "glosario": [
-                      {{"termino": "Concepto", "definicion": "Definición pedagógica."}}
+                      {{"termino": "Concepto", "definicion": "Definición profunda."}}
                     ],
-                    "preguntas_tipo_test": [
-                      {{
-                        "id": 1,
-                        "pregunta": "¿Pregunta de opción múltiple?",
-                        "opciones": ["A) Opción 1", "B) Opción 2", "C) Opción 3", "D) Opción 4"],
-                        "respuesta_correcta": "A",
-                        "explicacion_detallada": "Explicación académica."
-                      }}
-                    ]
+                    "preguntas_tipo_test": []
                   }},
                   "fechas_y_plazos_urgentes": [],
-                  "salida_accionable": "Plan de estudio recomendado para asimilar el temario.",
+                  "salida_accionable": "Plan de estudio recomendado para asimilar el temario de forma óptima.",
                   "disclaimer": "Este material ha sido procesado automáticamente con fines educativos."
                 }}
                 """
@@ -165,17 +173,17 @@ def index():
                 }
 
                 payload = {
-                    "model": "gpt-4o-mini", # CAMBIO CLAVE: Cero timeouts en Render, 4x más rápido
+                    "model": "gpt-4o-mini",
                     "response_format": {"type": "json_object"},
                     "messages": [
                         {"role": "system", "content": prompt_sistema},
-                        {"role": "user", "content": f"Documento ({total_paginas} págs.) para Rol {rol_usuario}:\n\n{texto_extraido[:70000]}"}
+                        {"role": "user", "content": f"Documento ({total_paginas} págs.) para Rol {rol_usuario}:\n\n{texto_extraido[:100000]}"}
                     ],
                     "temperature": 0.2,
-                    "max_tokens": 4000
+                    "max_tokens": 6000
                 }
 
-                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
+                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=90)
                 response_json = response.json()
 
                 if response.status_code != 200:
