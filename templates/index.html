@@ -6,40 +6,116 @@
     <title>LexAI Enterprise 2.0</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <style>
-        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .hero-section { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 40px 0; margin-bottom: 30px; }
-        .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .btn-primary-custom { background-color: #1e3c72; border: none; font-weight: 600; padding: 12px 25px; border-radius: 8px; }
-        .btn-primary-custom:hover { background-color: #162d56; }
+        body { 
+            background-color: #f3f5f8; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
+        }
+        .header-bg { 
+            background: linear-gradient(180deg, #234882 0%, #1e3c72 100%); 
+            color: white; 
+            padding: 45px 20px 85px 20px; 
+            text-align: center;
+        }
+        .header-bg h1 {
+            font-weight: 800;
+            font-size: 2.8rem;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        .header-bg p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+        .main-container {
+            margin-top: -60px;
+            margin-bottom: 50px;
+        }
+        .card-custom { 
+            border: none; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08); 
+            background: #ffffff;
+            padding: 35px 40px;
+        }
+        .form-label-custom {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+        .file-drop-area {
+            border: 1.5px dashed #b0bec5;
+            border-radius: 8px;
+            padding: 12px 15px;
+            background-color: #f8fafc;
+        }
+        .form-control-custom {
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            height: 45px;
+            font-size: 0.95rem;
+        }
+        .form-control-custom:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+        .btn-submit { 
+            background-color: #1a3b70; 
+            border: none; 
+            font-weight: 700; 
+            padding: 14px; 
+            border-radius: 8px; 
+            font-size: 1.05rem;
+            transition: all 0.2s ease;
+        }
+        .btn-submit:hover { 
+            background-color: #122a52; 
+        }
         .role-group { display: none; }
+        .text-small-muted {
+            font-size: 0.82rem;
+            color: #78909c;
+            margin-top: 6px;
+        }
+        .custom-control-label {
+            font-size: 0.9rem;
+            color: #546e7a;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
 
-<div class="hero-section text-center">
+<!-- CABECERA AZUL -->
+<div class="header-bg">
     <div class="container">
-        <h1 class="display-4 font-weight-bold">LexAI Enterprise 2.0</h1>
-        <p class="lead">Plataforma de Análisis e Inteligencia Documental con Control Normativo</p>
+        <h1>LexAI Enterprise 2.0</h1>
+        <p>Plataforma de Análisis e Inteligencia Documental con Control Normativo</p>
     </div>
 </div>
 
-<div class="container mb-5">
+<!-- TARJETA FLOTANTE CENTRADA -->
+<div class="container main-container">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card card-custom p-4">
+        <div class="col-lg-7 col-md-9">
+            <div class="card card-custom">
                 <form action="/" method="POST" enctype="multipart/form-data">
                     
-                    <!-- SUBIDA DE ARCHIVO -->
+                    <!-- 1. SUBIDA DE ARCHIVO -->
                     <div class="form-group mb-4">
-                        <label for="file" class="font-weight-bold text-dark">Documento PDF (Máximo 50 páginas):</label>
-                        <input type="file" class="form-control-file p-2 style-file" id="file" name="file" accept=".pdf" required style="border: 2px dashed #ccc; border-radius: 8px;">
-                        <small class="form-text text-muted">Asegúrate de que el PDF tenga texto seleccionable.</small>
+                        <label for="file" class="form-label-custom">Documento PDF (Máximo 50 páginas):</label>
+                        <div class="file-drop-area">
+                            <input type="file" class="form-control-file" id="file" name="file" accept=".pdf" required>
+                        </div>
+                        <div class="text-small-muted">Asegúrate de que el PDF tenga texto seleccionable.</div>
                     </div>
 
-                    <!-- SELECTOR DE CATEGORÍA -->
+                    <!-- 2. CATEGORÍA DEL DOCUMENTO -->
                     <div class="form-group mb-4">
-                        <label for="categoria" class="font-weight-bold text-dark">Categoría del Documento:</label>
-                        <select class="form-control" id="categoria" onchange="mostrarRoles()">
+                        <label for="categoria" class="form-label-custom">Categoría del Documento:</label>
+                        <select class="form-control form-control-custom" id="categoria" onchange="mostrarRoles()">
                             <option value="inmobiliario">Inmobiliario / Contratos</option>
                             <option value="legal">Legal / Judicial / Laboral</option>
                             <option value="financiero">Financiero / Facturación</option>
@@ -48,14 +124,14 @@
                         </select>
                     </div>
 
-                    <!-- SELECTOR DE ROLES DINÁMICO -->
+                    <!-- 3. ROL O PERSPECTIVA -->
                     <div class="form-group mb-4">
-                        <label for="rol_usuario_select" class="font-weight-bold text-dark">Rol o Perspectiva del Análisis:</label>
+                        <label for="rol_usuario_select" class="form-label-custom">Rol o Perspectiva del Análisis:</label>
                         <input type="hidden" name="rol_usuario" id="rol_usuario_final" value="Comprador / Inversor">
                         
                         <!-- Inmobiliario -->
                         <div id="group_inmobiliario" class="role-group">
-                            <select class="form-control" id="select_inmobiliario" onchange="actualizarRolFinal(this)">
+                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
                                 <option value="Comprador / Inversor">Comprador / Inversor</option>
                                 <option value="Vendedor / Propietario">Vendedor / Propietario</option>
                                 <option value="Arrendatario / Inquilino">Arrendatario / Inquilino</option>
@@ -66,7 +142,7 @@
 
                         <!-- Legal -->
                         <div id="group_legal" class="role-group">
-                            <select class="form-control" id="select_legal" onchange="actualizarRolFinal(this)">
+                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
                                 <option value="Demandante / Parte Activa">Demandante / Parte Activa</option>
                                 <option value="Demandado / Parte Pasiva">Demandado / Parte Pasiva</option>
                                 <option value="Empleado / Trabajador">Empleado / Trabajador</option>
@@ -77,7 +153,7 @@
 
                         <!-- Financiero -->
                         <div id="group_financiero" class="role-group">
-                            <select class="form-control" id="select_financiero" onchange="actualizarRolFinal(this)">
+                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
                                 <option value="Cliente / Receptor del Servicio">Cliente / Receptor del Servicio</option>
                                 <option value="Proveedor / Emisor de Factura">Proveedor / Emisor de Factura</option>
                                 <option value="Contable / Auditor Interno">Contable / Auditor Interno</option>
@@ -87,7 +163,7 @@
 
                         <!-- Educación -->
                         <div id="group_educacion" class="role-group">
-                            <select class="form-control" id="select_educacion" onchange="actualizarRolFinal(this)">
+                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
                                 <option value="Estudiante / Alumno">Estudiante / Alumno</option>
                                 <option value="Profesor / Docente">Profesor / Docente</option>
                             </select>
@@ -95,22 +171,24 @@
 
                         <!-- General -->
                         <div id="group_general" class="role-group">
-                            <select class="form-control" id="select_general" onchange="actualizarRolFinal(this)">
+                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
                                 <option value="General / Neutro">General / Neutro</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- ANONIMIZACIÓN Y RGPD -->
-                    <div class="form-group form-check mb-4">
-                        <input type="checkbox" class="form-check-input" id="anonimizar_datos" name="anonimizar_datos">
-                        <label class="form-check-label text-secondary" for="anonimizar_datos">
-                            🔒 Activar modo anonimización sensible (Redactar DNI, NIE, Emails y Teléfonos)
-                        </label>
+                    <!-- 4. CHECKBOX ANONIMIZACIÓN -->
+                    <div class="form-group mb-4">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="anonimizar_datos" name="anonimizar_datos" checked>
+                            <label class="custom-control-label" for="anonimizar_datos">
+                                🔒 Activar modo anonimización sensible (Redactar DNI, NIE, Emails y Teléfonos)
+                            </label>
+                        </div>
                     </div>
 
-                    <!-- BOTÓN DE ENVÍO -->
-                    <button type="submit" class="btn btn-primary-custom btn-block btn-lg text-white">
+                    <!-- BOTÓN PRINCIPAL -->
+                    <button type="submit" class="btn btn-primary btn-block btn-submit text-white">
                         Analizar Documento
                     </button>
                 </form>
