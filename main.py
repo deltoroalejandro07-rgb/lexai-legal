@@ -124,11 +124,11 @@ def index():
                 if not texto_extraido.strip():
                     texto_extraido = "Documento escaneado sin texto digital reconocible."
 
-                # Límite de texto ampliado para abarcar hasta 50 páginas completas (~140k caracteres)
-                texto_enviado = texto_extraido[:140000]
+                # Límite de texto optimizado para velocidad rápida sin ahogar la API
+                texto_enviado = texto_extraido[:90000]
 
-                # Número de preguntas proporcional a las páginas reales (48 págs = ~24 preguntas)
-                num_preguntas_test = min(25, max(10, total_paginas // 2))
+                # Número de preguntas bien ajustado para la categoría académica
+                num_preguntas_test = min(20, max(10, total_paginas // 2))
 
                 prompt_sistema = f"""
                 Eres LexAI Enterprise 2.0, profesor y tutor académico universitario.
@@ -139,9 +139,9 @@ def index():
                 1. CATEGORÍA "Educación/Académico":
                    - "puntos_criticos_con_riesgo" DEBE ESTAR VACÍO [].
                    - En "modulo_educacion":
-                     a) "resumen_esquematico": Selecciona entre 6 y 10 APARTADOS CLAVE de TODO el documento. Cada uno con "titulo" y "resumen_seccion" (1 a 2 párrafos concisos pero completos de valor pedagógico).
-                     b) "glosario": 8 a 12 términos clave con su definición.
-                     c) "preguntas_tipo_test": Genera OBLIGATORIAMENTE Y EXACTAMENTE {num_preguntas_test} preguntas tipo test distribuidas a lo largo de todo el documento (desde la página 1 hasta la {total_paginas}). Cada pregunta incluye 'id', 'pregunta', 'opciones' (A,B,C,D), 'respuesta_correcta' y 'explicacion_detallada' corta.
+                     a) "resumen_esquematico": Extrae entre 5 y 8 APARTADOS CLAVE del temario. Cada uno con "titulo" y "resumen_seccion" (1 a 2 párrafos concisos de alto valor explicativo).
+                     b) "glosario": 8 términos clave con definición concisa.
+                     c) "preguntas_tipo_test": Genera EXACTAMENTE {num_preguntas_test} preguntas tipo test. IMPORTANTE: La 'explicacion_detallada' de cada pregunta debe ser MUY BREVE (máximo 1 frase corta) para maximizar velocidad.
 
                 2. OTRAS CATEGORÍAS (Inmobiliario, Financiero, Legal, Laboral):
                    - Evaluar cláusulas o descuadres numéricos en "puntos_criticos_con_riesgo".
@@ -181,13 +181,13 @@ def index():
                     "response_format": {"type": "json_object"},
                     "messages": [
                         {"role": "system", "content": prompt_sistema},
-                        {"role": "user", "content": f"Documento completo ({total_paginas} págs.):\n\n{texto_enviado}"}
+                        {"role": "user", "content": f"Documento ({total_paginas} págs.):\n\n{texto_enviado}"}
                     ],
                     "temperature": 0.2,
-                    "max_tokens": 4500
+                    "max_tokens": 3800
                 }
 
-                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=75)
+                response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
                 response_json = response.json()
 
                 if response.status_code != 200:
@@ -247,4 +247,3 @@ def index():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-    
