@@ -136,15 +136,35 @@ def index():
                 texto_enviado = texto_extraido[:90000]
                 num_preguntas_test = min(20, max(10, total_paginas // 2))
 
-                # LÓGICA ESPECÍFICA PARA EL NUEVO ROL "Gestor / Asesor profesional"
+                # LÓGICA ESPECÍFICA PARA EL ROL "Gestor / Asesor profesional"
                 es_asesor = (rol_usuario == "Gestor / Asesor profesional")
 
                 if es_asesor:
                     instrucciones_asesor = """
                     INSTRUCCIONES ESPECIALES PARA EL ROL "Gestor / Asesor profesional":
                     - TONO Y TÉCNICA: Usa un lenguaje strictly jurídico, fiscal o contable experto (técnico, conciso, directivo). No traduzcas a lenguaje llano ni expliques conceptos básicos.
-                    - REFERENCIAS LEGALES: Fundamenta los riesgos citando expresamente artículos de leyes españolas (LAU, Ley Hipotecaria, Código Civil, LGT, ET, LEC, etc.) o reglamentos aplicables.
-                    - ENFOQUE: Prioriza detección de omisiones contractuales, cláusulas abusivas/inoperantes y riesgos de responsabilidad profesional.
+                    - RIGOR Y CERO ALUCINACIONES EN CITAS LEGALES:
+                      1. IDENTIFICACIÓN OBLIGATORIA DEL RÉGIMEN JURÍDICO APLICABLE:
+                         Antes de analizar en Inmobiliario/Contratos, identifica expresamente el régimen jurídico exacto:
+                         * Arrendamiento de vivienda habitual: Título II LAU (arts. 6 a 28). Aplican arts. 9 (prórroga obligatoria), 17-20 (renta/actualización), 36 (fianza de 1 mes).
+                         * Arrendamiento para uso distinto de vivienda (local comercial, oficina, turístico, etc.): Título III LAU (arts. 29 a 35) con LIBERTAD DE PACTOS. NO APLICA el art. 9 LAU (no hay prórroga obligatoria legal) ni los límites de fianza de vivienda (art. 36 LAU exige mínimo 2 meses en uso distinto de vivienda).
+                         * Contratos entre empresas, rústicos o especiales: Indicar su régimen correspondiente.
+                         EL RESUMEN EJECUTIVO DEBE EMPEZAR identificando expresamente el régimen aplicable (ej. "Contrato regido por el Título III de la LAU (uso distinto de vivienda)...").
+
+                      2. NO APLICAR NORMAS DE RÉGIMEN INCORRECTO:
+                         En uso distinto de vivienda (local comercial), NO cites como ilegales cláusulas válidas bajo la libertad de pactos. Si una cláusula es económicamente desfavorable pero legal, márcala como "🟡 ATENCIÓN" o "🔵 INFORMATIVO" con la aclaración: "Cláusula económicamente desfavorable pero admisible bajo el régimen de libertad de pactos del Título III LAU. Recomendación de negociación, no de nulidad."
+
+                      3. NORMATIVA ADECUADA POR TIPO DE PROBLEMA:
+                         * Cláusulas penales excesivas -> Art. 1154 Código Civil (moderación judicial), NUNCA art. 1254 CC.
+                         * Sumisión expresa de jurisdicción -> Arts. 54-56 de la LEC, NUNCA el Código Civil.
+                         * Cesión y traspaso en local comercial -> Art. 32 LAU.
+                         * Obras de conservación -> Art. 21 LAU.
+                         * Gastos generales -> Art. 20 LAU (vivienda) o pacto Título III (local).
+                         * Vicios ocultos y saneamiento -> Arts. 1553 y 1554 Código Civil.
+
+                      4. VERIFICACIÓN Y PRUDENCIA:
+                         Antes de incluir un artículo, verifica que exista, regule la materia exacta y corresponda al régimen (vivienda vs no vivienda). SI TIENES DUDAS SOBRE EL NÚMERO EXACTO DE UN ARTÍCULO, NO LO CITES EN NUMÉRICO; indica en su lugar "requiere verificación legal específica" o "según la normativa aplicable".
+
                     - INCLUIR EN EL JSON:
                       a) "checklist_profesional": Array de 5 a 8 cadenas de texto con puntos técnicos de verificación administrativa/legal previa.
                       b) "preguntas_cliente": Array de 3 a 5 cadenas de texto con preguntas clave que el profesional debe hacerle a su cliente.
