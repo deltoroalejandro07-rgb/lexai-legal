@@ -97,7 +97,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
 1. SI LA CATEGORÍA ES "Educación / Académico":
    - "puntos_criticos_con_riesgo" debe ser un array vacío [].
    - Rellena obligatoriamente "modulo_educacion":
-     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados extraídos del documento (ejemplo: ["1. Título del Capítulo 1", "   1.1 Subapartado A", "   1.2 Subapartado B", "2. Título del Capítulo 2", "   2.1 Subapartado A"]).
+     * "esquema_temario": Lista jerárquica de cadenas de texto (strings) con los capítulos y subapartados numerados extraídos del documento (ejemplo: ["1. Título del Capítulo 1", "   1.1 Subapartado A", "   1.2 Subapartado B", "2. Título del Capítulo 2", "   2.1 Subapartado A"]).
      * "glosario": 8-10 términos técnicos con sus definiciones.
      * "preguntas_tipo_test": {num_preguntas_test} preguntas de autoevaluación con opciones y respuesta correcta.
 
