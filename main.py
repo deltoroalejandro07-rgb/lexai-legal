@@ -86,7 +86,8 @@ def index():
     if anonimizar:
         texto_completo = anonimizar_texto_sensible(texto_completo)
 
-    num_preguntas_test = min(20, max(10, num_paginas * 2))
+    # Cálculo escalar de preguntas (mínimo 8, máximo 100, aprox 1 por cada 2.2 páginas)
+    num_preguntas_test = min(100, max(8, round(num_paginas / 2.2)))
 
     prompt_sistema = f"""
 Eres LexAI Enterprise 2.0, un auditor jurídico e inmobiliario experto y tutor académico.
@@ -97,15 +98,15 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
 1. SI LA CATEGORÍA ES "Educación / Académico":
    - "puntos_criticos_con_riesgo" debe ser un array vacío [].
    - Rellena obligatoriamente "modulo_educacion":
-     * "esquema_temario": Lista jerárquica de cadenas de texto (strings) con los capítulos y subapartados numerados extraídos del documento (ejemplo: ["1. Título del Capítulo 1", "   1.1 Subapartado A", "   1.2 Subapartado B", "2. Título del Capítulo 2", "   2.1 Subapartado A"]).
-     * "glosario": 8-10 términos técnicos con sus definiciones.
-     * "preguntas_tipo_test": {num_preguntas_test} preguntas de autoevaluación con opciones y respuesta correcta.
+     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados extraídos del documento (ejemplo: ["1. Título del Capítulo 1", "   1.1 Subapartado A", "   1.2 Subapartado B", "2. Título del Capítulo 2", "   2.1 Subapartado A"]).
+     * "glosario": Array de 8 a 10 objetos, cada uno estrictamente con "termino" y "definicion".
+     * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación. Cada pregunta debe tener sus 4 opciones (A, B, C, D), la letra de la respuesta correcta y una breve explicación del motivo.
 
 2. PARA "Inmobiliario / Contratos" Y DEMÁS CATEGORÍAS TÉCNICO-LEGALES:
    - "modulo_educacion" debe quedar vacío: {{"esquema_temario": [], "glosario": [], "preguntas_tipo_test": []}}.
    - DEBES AUDITAR Y EXTRAER OBLIGATORIAMENTE todos los riesgos y cláusulas críticas en el array "puntos_criticos_con_riesgo".
    - Identifica específicamente: fianzas o garantías adicionales excesivas, penalizaciones por desistimiento anticipado, actualizaciones de renta, reparaciones/gastos atribuidos indebidamente al arrendatario, limitaciones de prórroga y cláusulas nulas según la Ley de Arrendamientos Urbanos (LAU) o Código Civil.
-   - Cada punto de riesgo DEBE clasificar su nivel estrictamente como: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
+   - Cada punto de riesgo DEBE clasificar su nivel strictly como: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
 
 ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
 {{
@@ -121,8 +122,25 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
       "2. Capítulo Principal B",
       "   2.1 Subtema B.1"
     ],
-    "glosario": [],
-    "preguntas_tipo_test": []
+    "glosario": [
+      {{
+        "termino": "Nombre del concepto técnico",
+        "definicion": "Explicación clara y concisa de su significado."
+      }}
+    ],
+    "preguntas_tipo_test": [
+      {{
+        "pregunta": "¿Texto completo de la pregunta de autoevaluación?",
+        "opciones": {{
+          "A": "Texto de la Opción A",
+          "B": "Texto de la Opción B",
+          "C": "Texto de la Opción C",
+          "D": "Texto de la Opción D"
+        }},
+        "respuesta_correcta": "A",
+        "explicacion": "Explicación detallada de por qué esta respuesta es la correcta."
+      }}
+    ]
   }},
   "salida_accionable": "Recomendaciones estratégicas o síntesis pedagógica final.",
   "disclaimer": "Informe generado por Inteligencia Artificial para uso profesional e informativo."
