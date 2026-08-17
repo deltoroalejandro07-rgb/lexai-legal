@@ -7,9 +7,13 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# Configuración API Key OpenAI
+# Configuración API Key OpenAI con timeout extendido
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+client = OpenAI(
+    api_key=OPENAI_API_KEY,
+    timeout=60.0,
+    max_retries=2
+) if OPENAI_API_KEY else None
 
 
 def anonimizar_texto_sensible(texto):
@@ -45,6 +49,9 @@ def index():
     if request.method == 'GET':
         return render_template('index.html')
 
+    if not client or not OPENAI_API_KEY:
+        return "Error: No se ha detectado la clave API de OpenAI (OPENAI_API_KEY) en las variables de entorno de Render.", 500
+
     if 'file' not in request.files:
         return "No se ha subido ningún archivo.", 400
 
@@ -68,7 +75,8 @@ def index():
         if not texto_completo.strip():
             return "No se pudo extraer texto del PDF.", 400
 
-        texto_completo = texto_completo[:90000]
+        # Recortar texto para evitar sobrepasar límites de tokens
+        texto_completo = texto_completo[:50000]
 
     except Exception as e:
         return f"Error al procesar el archivo PDF: {str(e)}", 500
