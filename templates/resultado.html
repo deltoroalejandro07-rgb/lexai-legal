@@ -41,13 +41,13 @@
         </div>
 
         <!-- 2. ESQUEMA Y CONTENIDO DEL TEMARIO (SÓLO EDUCACIÓN) -->
-        {% if data.categoria_documento == 'Educación / Académico' or (data.modulo_educacion and data.modulo_educacion.esquema_temario) %}
+        {% if data.categoria_documento == 'Educación / Académico' %}
         <div class="card mb-4 shadow-sm border-0">
             <div class="card-header bg-primary text-white font-weight-bold d-flex align-items-center">
                 <i class="fas fa-sitemap mr-2"></i> Esquema y Contenido del Temario
             </div>
             <div class="card-body">
-                {% if data.modulo_educacion and data.modulo_educacion.esquema_temario and data.modulo_educacion.esquema_temario|length > 0 %}
+                {% if data.modulo_educacion and data.modulo_educacion.esquema_temario %}
                     <div class="bg-light p-3 rounded border">
                         <ul class="list-unstyled mb-0" style="font-family: monospace; font-size: 0.95rem; line-height: 1.8;">
                             {% for item in data.modulo_educacion.esquema_temario %}
@@ -130,17 +130,10 @@
                         {% if preg.opciones is mapping %}
                             {% for key, val in preg.opciones.items() %}
                                 <div class="custom-control custom-radio mb-1">
-                                    <input type="radio" disabled class="custom-control-input" id="preg_{{ loop.parent.index }}_{{ key }}">
-                                    <label class="custom-control-label text-secondary" for="preg_{{ loop.parent.index }}_{{ key }}">
+                                    <input type="radio" disabled class="custom-control-input" id="preg_{{ loop.index }}_{{ key }}">
+                                    <label class="custom-control-label text-secondary" for="preg_{{ loop.index }}_{{ key }}">
                                         <strong>{{ key }})</strong> {{ val }}
                                     </label>
-                                </div>
-                            {% endfor %}
-                        {% elif preg.opciones is iterable %}
-                            {% for opc in preg.opciones %}
-                                <div class="custom-control custom-radio mb-1">
-                                    <input type="radio" disabled class="custom-control-input">
-                                    <label class="custom-control-label text-secondary">{{ opc }}</label>
                                 </div>
                             {% endfor %}
                         {% endif %}
