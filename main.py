@@ -132,7 +132,7 @@ REGLAS ESPECÍFICAS SEGÚN CATEGORÍA:
 FORMATO DE RESPUESTA JSON OBLIGATORIO:
 {{
   "categoria_documento": "{categoria_seleccionada}",
-  "tipo_documento": "Identificación exacta del tipo de archivo (ej. Contrato de Arrendamiento, Factura, Apuntes de Física, etc.)",
+  "tipo_documento": "Identificación exacta del tipo de archivo",
   "resumen_ejecutivo": "Síntesis técnica y estructurada del documento.",
   "puntos_criticos_con_riesgo": [
     {{
