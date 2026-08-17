@@ -7,7 +7,7 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# Configuración API Key OpenAI con timeout extendido
+# Configuración API Key OpenAI con timeout y reintentos
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 client = OpenAI(
     api_key=OPENAI_API_KEY,
@@ -75,7 +75,6 @@ def index():
         if not texto_completo.strip():
             return "No se pudo extraer texto del PDF.", 400
 
-        # Recortar texto para evitar sobrepasar límites de tokens
         texto_completo = texto_completo[:50000]
 
     except Exception as e:
@@ -89,30 +88,43 @@ def index():
 
     num_preguntas_test = min(20, max(10, num_paginas * 2))
 
+    # RESTAURACIÓN DEL PROMPT DE EVALUACIÓN DE RIESGOS E INMOBILIARIO
     prompt_sistema = f"""
-Eres LexAI Enterprise 2.0. Analiza el documento PDF de la CATEGORÍA: "{categoria_seleccionada}".
+Eres LexAI Enterprise 2.0, un auditor jurídico e inmobiliario de máximo nivel.
+Analiza exhaustivamente el documento PDF adjunto clasificado en la CATEGORÍA: "{categoria_seleccionada}".
 
-1. SI ES "Educación / Académico":
-   - "puntos_criticos_con_riesgo" debe ser [].
-   - En "modulo_educacion": genera resumen_esquematico (5-8 puntos), glosario (8-10 términos) y {num_preguntas_test} preguntas_tipo_test.
+REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
 
-2. OTRAS CATEGORÍAS:
-   - Identifica partes y analiza riesgos/cláusulas en "puntos_criticos_con_riesgo".
-   - Deja "modulo_educacion" vacío.
+1. SI LA CATEGORÍA ES "Educación / Académico":
+   - "puntos_criticos_con_riesgo" debe ser un array vacío [].
+   - Genera el contenido dentro de "modulo_educacion" (resumen_esquematico, glosario y {num_preguntas_test} preguntas_tipo_test).
 
-ESTRUCTURA JSON OBLIGATORIA:
+2. PARA "Inmobiliario / Contratos" Y DEMÁS CATEGORÍAS TÉCNICO-LEGALES:
+   - "modulo_educacion" debe quedar vacío: {{"resumen_esquematico": [], "glosario": [], "preguntas_tipo_test": []}}.
+   - DEBES AUDITAR Y EXTRAER OBLIGATORIAMENTE todos los riesgos y cláusulas críticas en el array "puntos_criticos_con_riesgo".
+   - Identifica específicamente: fianzas o garantías adicionales excesivas, penalizaciones por desistimiento anticipado, actualizaciones de renta, reparaciones/gastos atribuidos indebidamente al arrendatario, limitaciones de prórroga y cláusulas nulas según la Ley de Arrendamientos Urbanos (LAU) o Código Civil.
+   - Cada punto de riesgo DEBE usar uno de estos niveles: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
+
+ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
 {{
   "categoria_documento": "{categoria_seleccionada}",
-  "tipo_documento": "Tipo exacto",
-  "resumen_ejecutivo": "Resumen técnico",
-  "puntos_criticos_con_riesgo": [],
+  "tipo_documento": "Tipo exacto del documento",
+  "resumen_ejecutivo": "Análisis exhaustivo del contrato, objeto, partes involucradas y condiciones principales.",
+  "puntos_criticos_con_riesgo": [
+    {{
+      "nivel": "🔴 CRÍTICO",
+      "pagina": "Página X",
+      "punto": "Descripción detallada del riesgo o cláusula detectada (ej: Exigencia de 5 meses de fianza y garantía adicional)",
+      "contraste_estandar": "Marco normativo o impacto (ej: Vulnera el límite del Art. 36 de la LAU para vivienda habitual)"
+    }}
+  ],
   "modulo_educacion": {{
     "resumen_esquematico": [],
     "glosario": [],
     "preguntas_tipo_test": []
   }},
-  "salida_accionable": "Recomendación final",
-  "disclaimer": "Generado por IA."
+  "salida_accionable": "Recomendaciones estratégicas concretas de modificación o negociación.",
+  "disclaimer": "Informe generado por Inteligencia Artificial para uso profesional e informativo."
 }}
 """
 
@@ -122,7 +134,7 @@ ESTRUCTURA JSON OBLIGATORIA:
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": prompt_sistema},
-                {"role": "user", "content": f"Texto del PDF:\n{texto_completo}"}
+                {"role": "user", "content": f"Texto del PDF a analizar:\n{texto_completo}"}
             ],
             temperature=0.2
         )
