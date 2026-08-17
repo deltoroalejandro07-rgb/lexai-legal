@@ -7,7 +7,7 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-# Configuración API Key OpenAI (Conexión estable)
+# Configuración API Key OpenAI
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 client = OpenAI(
     api_key=OPENAI_API_KEY,
@@ -97,7 +97,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
 1. SI LA CATEGORÍA ES "Educación / Académico":
    - "puntos_criticos_con_riesgo" debe ser un array vacío [].
    - Rellena obligatoriamente "modulo_educacion":
-     * "esquema_temario": Lista jerárquica detallada de capítulos y subapartados numerados (ej: "Capítulo 1: Introducción", "1.1 Conceptos clave", "1.2 Contexto histórico").
+     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados extraídos del documento (ejemplo: ["1. Título del Capítulo 1", "   1.1 Subapartado A", "   1.2 Subapartado B", "2. Título del Capítulo 2", "   2.1 Subapartado A"]).
      * "glosario": 8-10 términos técnicos con sus definiciones.
      * "preguntas_tipo_test": {num_preguntas_test} preguntas de autoevaluación con opciones y respuesta correcta.
 
@@ -112,19 +112,14 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
   "categoria_documento": "{categoria_seleccionada}",
   "tipo_documento": "Tipo exacto del documento",
   "resumen_ejecutivo": "Análisis exhaustivo del documento, objeto, partes involucradas o temas principales.",
-  "puntos_criticos_con_riesgo": [
-    {{
-      "nivel": "🔴 CRÍTICO",
-      "pagina": "Página X",
-      "punto": "Descripción detallada del riesgo o cláusula detectada",
-      "contraste_estandar": "Marco normativo, ley afectada o impacto legal/económico"
-    }}
-  ],
+  "puntos_criticos_con_riesgo": [],
   "modulo_educacion": {{
     "esquema_temario": [
-      "Capítulo 1: Título del Tema Principal",
-      "  1.1 Subapartado o concepto clave A",
-      "  1.2 Subapartado o concepto clave B"
+      "1. Capítulo Principal A",
+      "   1.1 Subtema A.1",
+      "   1.2 Subtema A.2",
+      "2. Capítulo Principal B",
+      "   2.1 Subtema B.1"
     ],
     "glosario": [],
     "preguntas_tipo_test": []
