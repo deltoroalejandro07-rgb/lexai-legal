@@ -73,7 +73,6 @@
         .btn-submit:hover { 
             background-color: #122a52; 
         }
-        .role-group { display: none; }
         .text-small-muted {
             font-size: 0.82rem;
             color: #78909c;
@@ -115,69 +114,16 @@
                     <!-- 2. CATEGORÍA DEL DOCUMENTO -->
                     <div class="form-group mb-4">
                         <label for="categoria" class="form-label-custom">Categoría del Documento:</label>
-                        <select class="form-control form-control-custom" id="categoria" onchange="mostrarRoles()">
-                            <option value="inmobiliario">Inmobiliario / Contratos</option>
-                            <option value="legal">Legal / Judicial / Laboral</option>
-                            <option value="financiero">Financiero / Facturación</option>
-                            <option value="educacion">Educación / Académico</option>
-                            <option value="general">General / Otros</option>
+                        <select class="form-control form-control-custom" id="categoria" name="categoria">
+                            <option value="Inmobiliario / Contratos">Inmobiliario / Contratos</option>
+                            <option value="Legal / Judicial / Laboral">Legal / Judicial / Laboral</option>
+                            <option value="Financiero / Facturación">Financiero / Facturación</option>
+                            <option value="Educación / Académico">Educación / Académico</option>
+                            <option value="General / Otros">General / Otros</option>
                         </select>
                     </div>
 
-                    <!-- 3. ROL O PERSPECTIVA -->
-                    <div class="form-group mb-4">
-                        <label for="rol_usuario_select" class="form-label-custom">Rol o Perspectiva del Análisis:</label>
-                        <input type="hidden" name="rol_usuario" id="rol_usuario_final" value="Comprador / Inversor">
-                        
-                        <!-- Inmobiliario -->
-                        <div id="group_inmobiliario" class="role-group">
-                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
-                                <option value="Comprador / Inversor">Comprador / Inversor</option>
-                                <option value="Vendedor / Propietario">Vendedor / Propietario</option>
-                                <option value="Arrendatario / Inquilino">Arrendatario / Inquilino</option>
-                                <option value="Arrendador / Propietario">Arrendador / Propietario</option>
-                                <option value="Gestor / Asesor profesional">Gestor / Asesor profesional</option>
-                            </select>
-                        </div>
-
-                        <!-- Legal -->
-                        <div id="group_legal" class="role-group">
-                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
-                                <option value="Demandante / Parte Activa">Demandante / Parte Activa</option>
-                                <option value="Demandado / Parte Pasiva">Demandado / Parte Pasiva</option>
-                                <option value="Empleado / Trabajador">Empleado / Trabajador</option>
-                                <option value="Empleador / Empresa">Empleador / Empresa</option>
-                                <option value="Gestor / Asesor profesional">Gestor / Asesor profesional</option>
-                            </select>
-                        </div>
-
-                        <!-- Financiero -->
-                        <div id="group_financiero" class="role-group">
-                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
-                                <option value="Cliente / Receptor del Servicio">Cliente / Receptor del Servicio</option>
-                                <option value="Proveedor / Emisor de Factura">Proveedor / Emisor de Factura</option>
-                                <option value="Contable / Auditor Interno">Contable / Auditor Interno</option>
-                                <option value="Gestor / Asesor profesional">Gestor / Asesor profesional</option>
-                            </select>
-                        </div>
-
-                        <!-- Educación -->
-                        <div id="group_educacion" class="role-group">
-                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
-                                <option value="Estudiante / Alumno">Estudiante / Alumno</option>
-                                <option value="Profesor / Docente">Profesor / Docente</option>
-                            </select>
-                        </div>
-
-                        <!-- General -->
-                        <div id="group_general" class="role-group">
-                            <select class="form-control form-control-custom" onchange="actualizarRolFinal(this)">
-                                <option value="General / Neutro">General / Neutro</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- 4. CHECKBOX ANONIMIZACIÓN -->
+                    <!-- 3. CHECKBOX ANONIMIZACIÓN -->
                     <div class="form-group mb-4">
                         <div class="custom-control custom-checkbox">
                             <input type="checkbox" class="custom-control-input" id="anonimizar_datos" name="anonimizar_datos" checked>
@@ -196,31 +142,6 @@
         </div>
     </div>
 </div>
-
-<script>
-function mostrarRoles() {
-    var cat = document.getElementById("categoria").value;
-    var groups = document.getElementsByClassName("role-group");
-    for (var i = 0; i < groups.length; i++) {
-        groups[i].style.display = "none";
-    }
-    
-    var activeGroup = document.getElementById("group_" + cat);
-    if (activeGroup) {
-        activeGroup.style.display = "block";
-        var select = activeGroup.querySelector("select");
-        actualizarRolFinal(select);
-    }
-}
-
-function actualizarRolFinal(selectElement) {
-    document.getElementById("rol_usuario_final").value = selectElement.value;
-}
-
-window.onload = function() {
-    mostrarRoles();
-};
-</script>
 
 </body>
 </html>
