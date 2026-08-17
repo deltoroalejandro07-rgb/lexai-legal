@@ -106,7 +106,7 @@
                     {% for item in data.modulo_educacion.glosario %}
                     <div class="col-md-6 mb-3">
                         <div class="p-3 bg-light rounded border h-100">
-                            <strong class="text-primary">{{ item.concepto or item.termino }}:</strong>
+                            <strong class="text-primary">{{ item.termino or item.concepto }}:</strong>
                             <p class="mb-0 small text-dark mt-1">{{ item.definicion }}</p>
                         </div>
                     </div>
@@ -116,31 +116,46 @@
         </div>
         {% endif %}
 
-        <!-- 5. TEST DE AUTOEVALUACIÓN (SÓLO EDUCACIÓN) -->
+        <!-- 5. TEST DE AUTOEVALUACIÓN INTERACTIVO (SÓLO EDUCACIÓN) -->
         {% if data.modulo_educacion and data.modulo_educacion.preguntas_tipo_test and data.modulo_educacion.preguntas_tipo_test|length > 0 %}
         <div class="card mb-4 shadow-sm border-0">
             <div class="card-header bg-success text-white font-weight-bold">
-                <i class="fas fa-question-circle mr-2"></i> Test de Autoevaluación
+                <i class="fas fa-question-circle mr-2"></i> Test de Autoevaluación ({{ data.modulo_educacion.preguntas_tipo_test|length }} Preguntas)
             </div>
             <div class="card-body">
                 {% for preg in data.modulo_educacion.preguntas_tipo_test %}
                 <div class="mb-4 pb-3 border-bottom">
-                    <p class="font-weight-bold mb-2">{{ loop.index }}. {{ preg.pregunta }}</p>
-                    <div class="pl-3">
+                    <p class="font-weight-bold mb-3">{{ loop.index }}. {{ preg.pregunta }}</p>
+                    
+                    <!-- OPCIONES DE RESPUESTA (A, B, C, D) -->
+                    <div class="row pl-2 mb-3">
                         {% if preg.opciones is mapping %}
                             {% for key, val in preg.opciones.items() %}
-                                <div class="custom-control custom-radio mb-1">
-                                    <input type="radio" disabled class="custom-control-input" id="preg_{{ loop.index }}_{{ key }}">
-                                    <label class="custom-control-label text-secondary" for="preg_{{ loop.index }}_{{ key }}">
-                                        <strong>{{ key }})</strong> {{ val }}
-                                    </label>
+                            <div class="col-md-6 mb-2">
+                                <div class="p-2 border rounded bg-light text-dark">
+                                    <strong>{{ key }})</strong> {{ val }}
                                 </div>
+                            </div>
                             {% endfor %}
                         {% endif %}
                     </div>
-                    <div class="mt-2 text-success small">
-                        <i class="fas fa-check-circle mr-1"></i><strong>Respuesta correcta:</strong> {{ preg.respuesta_correcta }}
-                    </div>
+
+                    <!-- BOTÓN DESPLEGABLE DE SOLUCIÓN Y EXPLICACIÓN -->
+                    <details class="mt-2">
+                        <summary class="btn btn-sm btn-outline-success font-weight-bold" style="cursor: pointer;">
+                            <i class="fas fa-eye mr-1"></i> Mostrar Solución y Explicación
+                        </summary>
+                        <div class="mt-2 p-3 bg-light border border-success rounded">
+                            <p class="mb-1 text-success font-weight-bold">
+                                <i class="fas fa-check-circle mr-1"></i> Respuesta correcta: {{ preg.respuesta_correcta }}
+                            </p>
+                            {% if preg.explicacion %}
+                            <p class="mb-0 small text-secondary">
+                                <strong>Explicación:</strong> {{ preg.explicacion }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </details>
                 </div>
                 {% endfor %}
             </div>
