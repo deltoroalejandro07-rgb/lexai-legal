@@ -25,16 +25,38 @@ def anonimizar_texto_sensible(texto):
     return texto
 
 
-def verificar_exactitud_datos(texto_original, resumen_generado):
-    if not resumen_generado or not texto_original:
+def verificar_exactitud_datos(texto_original, data_json):
+    """
+    Extrae y contrasta las cifras numéricas presentes tanto en el Resumen Ejecutivo
+    como en la Auditoría de Riesgos contra el texto original extraído del PDF.
+    """
+    if not data_json or not texto_original:
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
     
-    cifras_encontradas = re.findall(r'\b\d+(?:[\.,]\d+)?\b', resumen_generado)
-    if not cifras_encontradas:
+    # Concatenamos todo el texto generado por la IA donde hay datos numéricos
+    texto_ia = str(data_json.get("resumen_ejecutivo", "")) + " " + json.dumps(data_json.get("puntos_criticos_con_riesgo", []))
+
+    # Regex mejorada para capturar números, importes, porcentajes y cifras decimales (formato ES y EN)
+    cifras_encontradas = re.findall(r'\b\d+(?:[\.,]\d+)*(?:%|€|\$)?\b', texto_ia)
+    
+    # Filtramos cifras irrelevantes muy cortas (ej. números de página individuales si no aportan)
+    cifras_filtradas = [c for c in cifras_encontradas if len(re.sub(r'\D', '', c)) > 0]
+
+    if not cifras_filtradas:
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
 
-    validadas = sum(1 for cifra in cifras_encontradas if cifra in texto_original)
-    total = len(cifras_encontradas)
+    # Normalizamos el texto original quitando espacios raros para facilitar la búsqueda de la cifra
+    texto_orig_limpio = " ".join(texto_original.split())
+
+    validadas = 0
+    cifras_unicas = list(set(cifras_filtradas))
+
+    for cifra in cifras_unicas:
+        cifra_limpia = cifra.replace("€", "").replace("%", "").strip()
+        if cifra in texto_original or cifra_limpia in texto_original or cifra_limpia in texto_orig_limpio:
+            validadas += 1
+
+    total = len(cifras_unicas)
     score = round((validadas / total) * 100, 1) if total > 0 else 100
 
     return {
@@ -101,7 +123,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
    - "puntos_criticos_con_riesgo" debe ser un array vacío [].
    - "subtipo_detectado" y "regimen_juridico_aplicable" se rellenarán como "Documento Académico / Material de Estudio" y "No aplica (Ámbito Educativo)".
    - Rellena obligatoriamente "modulo_educacion":
-     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados extraídos del documento.
+     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados.
      * "glosario": Array de 8 a 10 objetos, cada uno estrictamente con "termino" y "definicion".
      * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
 
@@ -129,19 +151,25 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
       * Si no se identifica con claridad, indica estrictamente "Documento genérico".
 
    B. IDENTIFICACIÓN DEL RÉGIMEN JURÍDICO APLICABLE:
-      Indica de forma precisa la normativa o ley principal que aplica al subtipo (ej. Título II de la LAU arts. 6 a 28, Estatuto de los Trabajadores RD Leg. 2/2015, Ley de Contrato de Seguro 50/1980, Código Civil, Ley del IVA/IRPF, Ley Reguladora de la Jurisdicción Social, etc.).
+      Indica de forma precisa la normativa o ley principal que aplica al subtipo.
       * OBLIGATORIO: La primera frase del "resumen_ejecutivo" DEBE empezar identificando expresamente este régimen jurídico para dar contexto legal inmediato.
 
-   C. ADAPTACIÓN DEL ANÁLISIS DE RIESGOS ("puntos_criticos_con_riesgo"):
-      Adapta las cláusulas y puntos auditados según el subtipo detectado:
+   C. VERIFICACIÓN MATEMÁTICA Y AUDITORÍA DE FACTURAS Y PRESUPUESTOS (REGLA IMPERATIVA):
+      Si el subtipo es "Factura o presupuesto comercial":
+      1. Extrae explícitamente en el "resumen_ejecutivo" todas las cifras: Base Imponible, tipos de IVA/IRPF aplicados, importes de impuestos y Total a Pagar.
+      2. CALCULA Y VERIFICA MATEMÁTICAMENTE: Suma la Base Imponible + Impuestos (IVA) - Retenciones (IRPF).
+      3. Compara tu resultado calculado con el Total a Pagar impreso en el documento.
+      4. SI HAY UN DESCUADRE O ERROR MATEMÁTICO, DEBES GENERAR OBLIGATORIAMENTE UN PUNTO EN "puntos_criticos_con_riesgo" CON NIVEL "🔴 CRÍTICO" USANDO ESTE FORMATO EXACTO:
+         "Error Matemático / Descuadre en Total a Pagar: La suma de la Base Imponible ([importe base]) y los impuestos ([importe impuestos]) debería ser [suma calculada correcta], no [total que aparece en el documento]. Hay una diferencia de [importe descuadre]."
+
+   D. ADAPTACIÓN DEL ANÁLISIS DE RIESGOS EN OTROS SUBTIPOS:
       - En contratos de alquiler: fianzas, garantías, actualización de renta, duración, conservación y gastos.
       - En contratos laborales / finiquitos: causa de despido, indemnización, preaviso, horas extra, devengos.
       - En sentencias/autos: fallo, cuantías, plazos y vía de recurso aplicable.
-      - En facturas/presupuestos: coherencia de importes, desglose IVA/IRPF, retenciones, vencimiento.
-      - En nóminas: conceptos salariales, deducciones a la Seguridad Social e IRPF dentro de rango legal.
+      - En nóminas: conceptos salariales, deducciones a la Seguridad Social e IRPF.
       Cada punto de riesgo DEBE clasificar su nivel estrictamente como: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
 
-   D. REGLA ESTRICTA DE CITAS LEGALES (VERIFICACIÓN 100%):
+   E. REGLA ESTRICTA DE CITAS LEGALES (VERIFICACIÓN 100%):
       - Cita artículos específicos ÚNICAMENTE si existe un 100% de certeza técnica de su aplicación exacta.
       - Si existe la menor duda sobre el número exacto del artículo o su redacción en el texto del documento, sustituye la cita por el texto explícito: "verificar normativa aplicable".
       - NUNCA inventes o deduzcas números de artículos o leyes.
@@ -152,13 +180,13 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
   "tipo_documento": "Categoría general o clase de documento",
   "subtipo_detectado": "Subtipo específico identificado entre los 14 especificados",
   "regimen_juridico_aplicable": "Marco legal principal aplicable",
-  "resumen_ejecutivo": "Empezar obligatoriamente indicando el régimen jurídico aplicable. Luego continuar con el análisis exhaustivo del documento, objeto, partes involucradas y obligaciones clave.",
+  "resumen_ejecutivo": "Empezar obligatoriamente indicando el régimen jurídico aplicable. Luego continuar con el análisis exhaustivo detallando todos los datos e importes principales.",
   "puntos_criticos_con_riesgo": [
     {{
       "nivel": "🔴 CRÍTICO",
       "pagina": "Página X",
-      "punto": "Descripción detallada del riesgo o cláusula",
-      "contraste_estandar": "Normativa aplicable citando artículo exacto o 'verificar normativa aplicable'"
+      "punto": "Descripción detallada del riesgo o del error matemático con las cifras exactas",
+      "contraste_estandar": "Normativa fiscal/comercial o 'verificar normativa aplicable'"
     }}
   ],
   "modulo_educacion": {{
@@ -166,7 +194,7 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
     "glosario": [],
     "preguntas_tipo_test": []
   }},
-  "salida_accionable": "Recomendaciones estratégicas concretas adaptadas al subtipo (ej. negociación de cláusulas, interposición de recurso, solicitud de rectificación de factura, etc.).",
+  "salida_accionable": "Recomendaciones estratégicas concretas adaptadas al subtipo (ej. solicitar factura rectificativa por error en total, negociación de cláusulas, interposición de recurso, etc.).",
   "disclaimer": "Informe generado por Inteligencia Artificial para uso profesional e informativo."
 }}
 """
@@ -179,13 +207,14 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
                 {"role": "system", "content": prompt_sistema},
                 {"role": "user", "content": f"Texto del PDF a analizar:\n{texto_completo}"}
             ],
-            temperature=0.2
+            temperature=0.1
         )
 
         json_raw = response.choices[0].message.content
         data = json.loads(json_raw)
 
-        exactitud = verificar_exactitud_datos(texto_completo, data.get("resumen_ejecutivo", ""))
+        # Se realiza la auditoría de cifras incluyendo tanto el resumen como la tabla de riesgos
+        exactitud = verificar_exactitud_datos(texto_completo, data)
         data["verificacion_exactitud"] = exactitud
 
         return render_template('resultado.html', data=data)
