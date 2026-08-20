@@ -29,17 +29,11 @@ def anonimizar_texto_sensible(texto):
 
 
 def extraer_texto_ocr_vision(pdf_bytes):
-    """
-    Procesa el PDF página a página usando PyMuPDF (muy bajo consumo de RAM)
-    y extrae el texto mediante OpenAI Vision.
-    """
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         texto_ocr = ""
 
-        # Limitamos a las primeras 10 páginas para optimizar costes y memoria
         for i, page in enumerate(doc[:10]):
-            # Renderizamos la página a imagen con una resolución ligera (dpi=150)
             pix = page.get_pixmap(dpi=150)
             img_bytes = pix.tobytes("jpeg")
             img_b64 = base64.b64encode(img_bytes).decode('utf-8')
@@ -75,28 +69,17 @@ def extraer_texto_ocr_vision(pdf_bytes):
 
 
 def verificar_exactitud_datos(texto_original, data_json):
-    """
-    Extrae y contrasta las cifras numéricas presentes tanto en el Resumen Ejecutivo
-    como en la Auditoría de Riesgos contra el texto original extraído del PDF.
-    """
     if not data_json or not texto_original:
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
     
-    # Concatenamos todo el texto generado por la IA donde hay datos numéricos
     texto_ia = str(data_json.get("resumen_ejecutivo", "")) + " " + json.dumps(data_json.get("puntos_criticos_con_riesgo", []))
-
-    # Regex mejorada para capturar números, importes, porcentajes y cifras decimales (formato ES y EN)
     cifras_encontradas = re.findall(r'\b\d+(?:[\.,]\d+)*(?:%|€|\$)?\b', texto_ia)
-    
-    # Filtramos cifras irrelevantes muy cortas
     cifras_filtradas = [c for c in cifras_encontradas if len(re.sub(r'\D', '', c)) > 0]
 
     if not cifras_filtradas:
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
 
-    # Normalizamos el texto original quitando espacios raros para facilitar la búsqueda de la cifra
     texto_orig_limpio = " ".join(texto_original.split())
-
     validadas = 0
     cifras_unicas = list(set(cifras_filtradas))
 
@@ -146,7 +129,6 @@ def index():
             if contenido:
                 texto_completo += f"\n--- PÁGINA {i+1} ---\n" + contenido
 
-        # FALLBACK SI ES UN PDF ESCANEADO / IMAGEN
         if not texto_completo.strip():
             texto_completo = extraer_texto_ocr_vision(pdf_bytes)
 
@@ -164,7 +146,6 @@ def index():
     if anonimizar:
         texto_completo = anonimizar_texto_sensible(texto_completo)
 
-    # Cálculo escalar de preguntas para educación
     num_preguntas_test = min(100, max(8, round(num_paginas / 2.2)))
 
     prompt_sistema = f"""
@@ -204,7 +185,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
       - Póliza de seguro
       - Nómina o recibo de salario
       - Otro documento (indicar cuál en el texto)
-      * Si no se identifica con claridad, indica strictly "Documento genérico".
+      * Si no se identifica con claridad, indica estrictamente "Documento genérico".
 
    B. IDENTIFICACIÓN DEL RÉGIMEN JURÍDICO APLICABLE:
       Indica de forma precisa la normativa o ley principal que aplica al subtipo.
@@ -214,7 +195,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
       Si el subtipo es "Factura o presupuesto comercial":
       1. Extrae explícitamente en el "resumen_ejecutivo" todas las cifras: Base Imponible, tipos de IVA/IRPF aplicados, importes de impuestos y Total a Pagar.
       2. CALCULA Y VERIFICA MATEMÁTICAMENTE: Suma la Base Imponible + Impuestos (IVA) - Retenciones (IRPF).
-      3. Compara tu resultado calculated con el Total a Pagar impreso en el documento.
+      3. Compara tu resultado calculado con el Total a Pagar impreso en el documento.
       4. SI HAY UN DESCUADRE O ERROR MATEMÁTICO, DEBES GENERAR OBLIGATORIAMENTE UN PUNTO EN "puntos_criticos_con_riesgo" CON NIVEL "🔴 CRÍTICO" USANDO ESTE FORMATO EXACTO:
          "Error Matemático / Descuadre en Total a Pagar: La suma de la Base Imponible ([importe base]) y los impuestos ([importe impuestos]) debería ser [suma calculada correcta], no [total que aparece en el documento]. Hay una diferencia de [importe descuadre]."
 
@@ -269,7 +250,6 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
         json_raw = response.choices[0].message.content
         data = json.loads(json_raw)
 
-        # Se realiza la auditoría de cifras incluyendo tanto el resumen como la tabla de riesgos
         exactitud = verificar_exactitud_datos(texto_completo, data)
         data["verificacion_exactitud"] = exactitud
 
@@ -282,3 +262,4 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+    
