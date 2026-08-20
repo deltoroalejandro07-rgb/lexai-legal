@@ -15,10 +15,21 @@
             <div>
                 <h2 class="text-primary font-weight-bold mb-0">Informe de Análisis LexAI</h2>
                 <span class="badge badge-secondary mt-1">{{ data.categoria_documento }}</span>
+                {% if data.subtipo_detectado %}
+                <span class="badge badge-primary mt-1">{{ data.subtipo_detectado }}</span>
+                {% else %}
                 <span class="badge badge-info mt-1">{{ data.tipo_documento }}</span>
+                {% endif %}
             </div>
             <a href="/" class="btn btn-outline-primary"><i class="fas fa-arrow-left mr-1"></i> Analizar otro documento</a>
         </div>
+
+        <!-- RÉGIMEN JURÍDICO APLICABLE -->
+        {% if data.regimen_juridico_aplicable and data.categoria_documento != 'Educación / Académico' %}
+        <div class="alert alert-dark border-left border-primary mb-4 shadow-sm">
+            <i class="fas fa-balance-scale mr-2 text-primary"></i><strong>Régimen Jurídico Aplicable:</strong> {{ data.regimen_juridico_aplicable }}
+        </div>
+        {% endif %}
 
         <!-- MÉTRICAS DE EXACTITUD -->
         {% if data.verificacion_exactitud %}
