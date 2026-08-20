@@ -1,7 +1,11 @@
 import os
 import re
 import json
+import base64
+import io
 import pypdf
+from PIL import Image
+from pdf2image import convert_from_bytes
 from flask import Flask, request, render_template
 from openai import OpenAI
 
@@ -25,6 +29,50 @@ def anonimizar_texto_sensible(texto):
     return texto
 
 
+def extraer_texto_ocr_vision(pdf_bytes):
+    """
+    Convierte las páginas del PDF escaneado a imágenes y utiliza OpenAI Vision
+    para extraer todo el texto del documento.
+    """
+    try:
+        images = convert_from_bytes(pdf_bytes)
+        texto_ocr = ""
+
+        # Limitamos el procesado visual a las primeras 15 páginas por rendimiento
+        for i, img in enumerate(images[:15]):
+            buffered = io.BytesIO()
+            img.save(buffered, format="JPEG")
+            img_b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto de esta imagen de un documento. No resumas, transcribe todo el texto visible."},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{img_b64}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=2000
+            )
+
+            texto_pagina = response.choices[0].message.content
+            if texto_pagina:
+                texto_ocr += f"\n--- PÁGINA {i+1} (OCR Vision) ---\n" + texto_pagina
+
+        return texto_ocr
+    except Exception as e:
+        print(f"Error en extracción OCR con Vision: {str(e)}")
+        return ""
+
+
 def verificar_exactitud_datos(texto_original, data_json):
     """
     Extrae y contrasta las cifras numéricas presentes tanto en el Resumen Ejecutivo
@@ -39,7 +87,7 @@ def verificar_exactitud_datos(texto_original, data_json):
     # Regex mejorada para capturar números, importes, porcentajes y cifras decimales (formato ES y EN)
     cifras_encontradas = re.findall(r'\b\d+(?:[\.,]\d+)*(?:%|€|\$)?\b', texto_ia)
     
-    # Filtramos cifras irrelevantes muy cortas (ej. números de página individuales si no aportan)
+    # Filtramos cifras irrelevantes muy cortas
     cifras_filtradas = [c for c in cifras_encontradas if len(re.sub(r'\D', '', c)) > 0]
 
     if not cifras_filtradas:
@@ -82,7 +130,10 @@ def index():
         return "No se ha seleccionado ningún archivo.", 400
 
     try:
-        reader = pypdf.PdfReader(file)
+        pdf_bytes = file.read()
+        file_stream = io.BytesIO(pdf_bytes)
+
+        reader = pypdf.PdfReader(file_stream)
         num_paginas = len(reader.pages)
 
         if num_paginas > 50:
@@ -94,8 +145,12 @@ def index():
             if contenido:
                 texto_completo += f"\n--- PÁGINA {i+1} ---\n" + contenido
 
+        # FALLBACK SI ES UN PDF ESCANEADO / IMAGEN
         if not texto_completo.strip():
-            return "No se pudo extraer texto del PDF.", 400
+            texto_completo = extraer_texto_ocr_vision(pdf_bytes)
+
+        if not texto_completo.strip():
+            return "No se pudo extraer texto del PDF (el archivo podría estar en blanco o dañado).", 400
 
         texto_completo = texto_completo[:50000]
 
@@ -124,7 +179,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
    - "subtipo_detectado" y "regimen_juridico_aplicable" se rellenarán como "Documento Académico / Material de Estudio" y "No aplica (Ámbito Educativo)".
    - Rellena obligatoriamente "modulo_educacion":
      * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados.
-     * "glosario": Array de 8 a 10 objetos, cada uno estrictamente con "termino" y "definicion".
+     * "glosario": Array de 8 a 10 objetos, cada uno strictly con "termino" y "definicion".
      * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
 
 ================================================================================
@@ -226,4 +281,3 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-    # VERSION ESTABLE - Todos los módulos validados: Vivienda 3 puntos + Local comercial 3 puntos + Financiero detecta error matemático + Educación completo + Anti-alucinación 100%
