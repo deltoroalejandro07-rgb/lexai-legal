@@ -3,6 +3,7 @@ import re
 import json
 import base64
 import io
+import gc
 import pypdf
 import fitz  # PyMuPDF
 from flask import Flask, request, render_template
@@ -30,18 +31,26 @@ def anonimizar_texto_sensible(texto):
 
 def extraer_texto_ocr_vision(pdf_bytes):
     """
-    Procesa el PDF página a página usando PyMuPDF (muy bajo consumo de RAM)
-    y extrae el texto mediante OpenAI Vision.
+    Procesa únicamente las 3 primeras páginas a resolución reducida (dpi=100)
+    para evitar saturar la memoria RAM de Render.
     """
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         texto_ocr = ""
 
-        # Limitamos a las primeras 10 páginas para optimizar costes y memoria
-        for i, page in enumerate(doc[:10]):
-            pix = page.get_pixmap(dpi=150)
+        # Limitamos a un máximo de 3 páginas para evitar Timeouts / Out of Memory
+        paginas_a_procesar = min(len(doc), 3)
+
+        for i in range(paginas_a_procesar):
+            page = doc[i]
+            # dpi=100 reduce drásticamente el uso de memoria RAM
+            pix = page.get_pixmap(dpi=100)
             img_bytes = pix.tobytes("png")
             img_b64 = base64.b64encode(img_bytes).decode('utf-8')
+
+            # Liberamos memoria de la imagen intermedia inmediatamente
+            pix = None
+            gc.collect()
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -49,7 +58,7 @@ def extraer_texto_ocr_vision(pdf_bytes):
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto de esta imagen de un documento. No resumas, transcribe todo el texto visible."},
+                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto de esta imagen. Transcribe todo el texto visible sin resumir."},
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -59,7 +68,7 @@ def extraer_texto_ocr_vision(pdf_bytes):
                         ]
                     }
                 ],
-                max_tokens=2000
+                max_tokens=1500
             )
 
             texto_pagina = response.choices[0].message.content
@@ -67,6 +76,7 @@ def extraer_texto_ocr_vision(pdf_bytes):
                 texto_ocr += f"\n--- PÁGINA {i+1} (OCR Vision) ---\n" + texto_pagina
 
         doc.close()
+        gc.collect()
         return texto_ocr
     except Exception as e:
         print(f"Error en extracción OCR con Vision: {str(e)}")
@@ -74,15 +84,10 @@ def extraer_texto_ocr_vision(pdf_bytes):
 
 
 def verificar_exactitud_datos(texto_original, data_json):
-    """
-    Extrae y contrasta las cifras numéricas presentes tanto en el Resumen Ejecutivo
-    como en la Auditoría de Riesgos contra el texto original extraído del PDF.
-    """
     if not data_json or not texto_original:
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
     
     texto_ia = str(data_json.get("resumen_ejecutivo", "")) + " " + json.dumps(data_json.get("puntos_criticos_con_riesgo", []))
-
     cifras_encontradas = re.findall(r'\b\d+(?:[\.,]\d+)*(?:%|€|\$)?\b', texto_ia)
     cifras_filtradas = [c for c in cifras_encontradas if len(re.sub(r'\D', '', c)) > 0]
 
@@ -90,7 +95,6 @@ def verificar_exactitud_datos(texto_original, data_json):
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
 
     texto_orig_limpio = " ".join(texto_original.split())
-
     validadas = 0
     cifras_unicas = list(set(cifras_filtradas))
 
@@ -161,7 +165,6 @@ def index():
     if anonimizar:
         texto_completo = anonimizar_texto_sensible(texto_completo)
 
-    # Cálculo escalar de preguntas para educación
     num_preguntas_test = min(100, max(8, round(num_paginas / 2.2)))
 
     prompt_sistema = f"""
@@ -224,7 +227,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
 
    E. REGLA ESTRICTA DE CITAS LEGALES (VERIFICACIÓN 100%):
       - Cita artículos específicos ÚNICAMENTE si existe un 100% de certeza técnica de su aplicación exacta.
-      - Si existe la menor duda sobre el número exacto del artículo o su redacción en el texto del documento, sustituye la cita por el texto explícito: "verificar normativa aplicable".
+      - Si existe la menor doubt sobre el número exacto del artículo o su redacción en el texto del documento, sustituye la cita por el texto explícito: "verificar normativa aplicable".
       - NUNCA inventes o deduzcas números de artículos o leyes.
 
 ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
