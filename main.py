@@ -29,13 +29,18 @@ def anonimizar_texto_sensible(texto):
 
 
 def extraer_texto_ocr_vision(pdf_bytes):
+    """
+    Procesa el PDF página a página usando PyMuPDF (muy bajo consumo de RAM)
+    y extrae el texto mediante OpenAI Vision.
+    """
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         texto_ocr = ""
 
+        # Limitamos a las primeras 10 páginas para optimizar costes y memoria
         for i, page in enumerate(doc[:10]):
             pix = page.get_pixmap(dpi=150)
-            img_bytes = pix.tobytes("jpeg")
+            img_bytes = pix.tobytes("png")
             img_b64 = base64.b64encode(img_bytes).decode('utf-8')
 
             response = client.chat.completions.create(
@@ -48,7 +53,7 @@ def extraer_texto_ocr_vision(pdf_bytes):
                             {
                                 "type": "image_url",
                                 "image_url": {
-                                    "url": f"data:image/jpeg;base64,{img_b64}"
+                                    "url": f"data:image/png;base64,{img_b64}"
                                 }
                             }
                         ]
@@ -65,14 +70,19 @@ def extraer_texto_ocr_vision(pdf_bytes):
         return texto_ocr
     except Exception as e:
         print(f"Error en extracción OCR con Vision: {str(e)}")
-        return ""
+        return f"ERROR_VISION: {str(e)}"
 
 
 def verificar_exactitud_datos(texto_original, data_json):
+    """
+    Extrae y contrasta las cifras numéricas presentes tanto en el Resumen Ejecutivo
+    como en la Auditoría de Riesgos contra el texto original extraído del PDF.
+    """
     if not data_json or not texto_original:
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
     
     texto_ia = str(data_json.get("resumen_ejecutivo", "")) + " " + json.dumps(data_json.get("puntos_criticos_con_riesgo", []))
+
     cifras_encontradas = re.findall(r'\b\d+(?:[\.,]\d+)*(?:%|€|\$)?\b', texto_ia)
     cifras_filtradas = [c for c in cifras_encontradas if len(re.sub(r'\D', '', c)) > 0]
 
@@ -80,6 +90,7 @@ def verificar_exactitud_datos(texto_original, data_json):
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
 
     texto_orig_limpio = " ".join(texto_original.split())
+
     validadas = 0
     cifras_unicas = list(set(cifras_filtradas))
 
@@ -129,8 +140,12 @@ def index():
             if contenido:
                 texto_completo += f"\n--- PÁGINA {i+1} ---\n" + contenido
 
+        # FALLBACK SI ES UN PDF ESCANEADO / IMAGEN
         if not texto_completo.strip():
-            texto_completo = extraer_texto_ocr_vision(pdf_bytes)
+            texto_ocr_res = extraer_texto_ocr_vision(pdf_bytes)
+            if texto_ocr_res.startswith("ERROR_VISION:"):
+                return f"Error en Vision OCR: {texto_ocr_res}", 500
+            texto_completo = texto_ocr_res
 
         if not texto_completo.strip():
             return "No se pudo extraer texto del PDF (el archivo podría estar en blanco o dañado).", 400
@@ -146,6 +161,7 @@ def index():
     if anonimizar:
         texto_completo = anonimizar_texto_sensible(texto_completo)
 
+    # Cálculo escalar de preguntas para educación
     num_preguntas_test = min(100, max(8, round(num_paginas / 2.2)))
 
     prompt_sistema = f"""
@@ -262,4 +278,3 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-    
