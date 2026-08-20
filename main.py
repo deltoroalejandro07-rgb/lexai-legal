@@ -36,16 +36,16 @@ def verificar_exactitud_datos(texto_original, data_json):
     # Concatenamos todo el texto generado por la IA donde hay datos numéricos
     texto_ia = str(data_json.get("resumen_ejecutivo", "")) + " " + json.dumps(data_json.get("puntos_criticos_con_riesgo", []))
 
-    # Regex para capturar números, importes, porcentajes y cifras decimales (formato ES y EN)
+    # Regex mejorada para capturar números, importes, porcentajes y cifras decimales (formato ES y EN)
     cifras_encontradas = re.findall(r'\b\d+(?:[\.,]\d+)*(?:%|€|\$)?\b', texto_ia)
     
-    # Filtramos cifras irrelevantes
+    # Filtramos cifras irrelevantes muy cortas (ej. números de página individuales si no aportan)
     cifras_filtradas = [c for c in cifras_encontradas if len(re.sub(r'\D', '', c)) > 0]
 
     if not cifras_filtradas:
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
 
-    # Normalizamos el texto original quitando espacios raros para facilitar la búsqueda
+    # Normalizamos el texto original quitando espacios raros para facilitar la búsqueda de la cifra
     texto_orig_limpio = " ".join(texto_original.split())
 
     validadas = 0
@@ -148,7 +148,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
       - Póliza de seguro
       - Nómina o recibo de salario
       - Otro documento (indicar cuál en el texto)
-      * Si no se identifica con claridad, indica strictly "Documento genérico".
+      * Si no se identifica con claridad, indica estrictamente "Documento genérico".
 
    B. IDENTIFICACIÓN DEL RÉGIMEN JURÍDICO APLICABLE:
       Indica de forma precisa la normativa o ley principal que aplica al subtipo.
@@ -163,20 +163,10 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
          "Error Matemático / Descuadre en Total a Pagar: La suma de la Base Imponible ([importe base]) y los impuestos ([importe impuestos]) debería ser [suma calculada correcta], no [total que aparece en el documento]. Hay una diferencia de [importe descuadre]."
 
    D. ADAPTACIÓN DEL ANÁLISIS DE RIESGOS EN OTROS SUBTIPOS:
-      
-      - SI EL SUBTIPO ES "Contrato de arrendamiento de vivienda habitual" (REGLA IMPERATIVA DE FIANZA):
-        1. Compara el importe total exigido como fianza con la renta mensual pactada.
-        2. Si la fianza supera el importe de UNA (1) mensualidad de renta, DEBES GENERAR OBLIGATORIAMENTE un punto en "puntos_criticos_con_riesgo" con nivel "🔴 CRÍTICO" usando ESTE FORMATO EXACTO:
-           "Fianza excesiva: La fianza declarada de [importe fianza] equivale a [X] mensualidades de renta ([importe renta] mensual), superando el límite legal de UNA mensualidad establecido en el Art. 36.1 de la LAU para vivienda habitual."
-        3. En la columna "contraste_estandar" DEBES indicar exactamente:
-           "Art. 36.1 LAU - Fianza legal limitada a 1 mensualidad en vivienda habitual"
-        * NOTA: Esta regla de límite de 1 mensualidad aplica ÚNICAMENTE a vivienda habitual, NO a local comercial u otros usos distintos.
-
-      - En contratos de arrendamiento de local comercial: verificar garantias pactadas, duración, cesión y conservación.
+      - En contratos de alquiler: fianzas, garantías, actualización de renta, duración, conservación y gastos.
       - En contratos laborales / finiquitos: causa de despido, indemnización, preaviso, horas extra, devengos.
       - En sentencias/autos: fallo, cuantías, plazos y vía de recurso aplicable.
       - En nóminas: conceptos salariales, deducciones a la Seguridad Social e IRPF.
-      
       Cada punto de riesgo DEBE clasificar su nivel estrictamente como: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
 
    E. REGLA ESTRICTA DE CITAS LEGALES (VERIFICACIÓN 100%):
@@ -195,8 +185,8 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
     {{
       "nivel": "🔴 CRÍTICO",
       "pagina": "Página X",
-      "punto": "Descripción detallada del riesgo o infracción legal con las cifras exactas",
-      "contraste_estandar": "Normativa aplicable o 'verificar normativa aplicable'"
+      "punto": "Descripción detallada del riesgo o del error matemático con las cifras exactas",
+      "contraste_estandar": "Normativa fiscal/comercial o 'verificar normativa aplicable'"
     }}
   ],
   "modulo_educacion": {{
@@ -204,7 +194,7 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
     "glosario": [],
     "preguntas_tipo_test": []
   }},
-  "salida_accionable": "Recomendaciones estratégicas concretas adaptadas al subtipo (ej. solicitar ajuste de fianza al límite legal, solicitar factura rectificativa, interposición de recurso, etc.).",
+  "salida_accionable": "Recomendaciones estratégicas concretas adaptadas al subtipo (ej. solicitar factura rectificativa por error en total, negociación de cláusulas, interposición de recurso, etc.).",
   "disclaimer": "Informe generado por Inteligencia Artificial para uso profesional e informativo."
 }}
 """
