@@ -4,8 +4,7 @@ import json
 import base64
 import io
 import pypdf
-from PIL import Image
-from pdf2image import convert_from_bytes
+import fitz  # PyMuPDF
 from flask import Flask, request, render_template
 from openai import OpenAI
 
@@ -31,18 +30,19 @@ def anonimizar_texto_sensible(texto):
 
 def extraer_texto_ocr_vision(pdf_bytes):
     """
-    Convierte las páginas del PDF escaneado a imágenes y utiliza OpenAI Vision
-    para extraer todo el texto del documento.
+    Procesa el PDF página a página usando PyMuPDF (muy bajo consumo de RAM)
+    y extrae el texto mediante OpenAI Vision.
     """
     try:
-        images = convert_from_bytes(pdf_bytes)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         texto_ocr = ""
 
-        # Limitamos el procesado visual a las primeras 15 páginas por rendimiento
-        for i, img in enumerate(images[:15]):
-            buffered = io.BytesIO()
-            img.save(buffered, format="JPEG")
-            img_b64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        # Limitamos a las primeras 10 páginas para optimizar costes y memoria
+        for i, page in enumerate(doc[:10]):
+            # Renderizamos la página a imagen con una resolución ligera (dpi=150)
+            pix = page.get_pixmap(dpi=150)
+            img_bytes = pix.tobytes("jpeg")
+            img_b64 = base64.b64encode(img_bytes).decode('utf-8')
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -67,6 +67,7 @@ def extraer_texto_ocr_vision(pdf_bytes):
             if texto_pagina:
                 texto_ocr += f"\n--- PÁGINA {i+1} (OCR Vision) ---\n" + texto_pagina
 
+        doc.close()
         return texto_ocr
     except Exception as e:
         print(f"Error en extracción OCR con Vision: {str(e)}")
@@ -179,7 +180,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
    - "subtipo_detectado" y "regimen_juridico_aplicable" se rellenarán como "Documento Académico / Material de Estudio" y "No aplica (Ámbito Educativo)".
    - Rellena obligatoriamente "modulo_educacion":
      * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados.
-     * "glosario": Array de 8 a 10 objetos, cada uno strictly con "termino" y "definicion".
+     * "glosario": Array de 8 a 10 objetos, cada uno estrictamente con "termino" y "definicion".
      * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
 
 ================================================================================
@@ -203,7 +204,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
       - Póliza de seguro
       - Nómina o recibo de salario
       - Otro documento (indicar cuál en el texto)
-      * Si no se identifica con claridad, indica estrictamente "Documento genérico".
+      * Si no se identifica con claridad, indica strictly "Documento genérico".
 
    B. IDENTIFICACIÓN DEL RÉGIMEN JURÍDICO APLICABLE:
       Indica de forma precisa la normativa o ley principal que aplica al subtipo.
@@ -213,7 +214,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
       Si el subtipo es "Factura o presupuesto comercial":
       1. Extrae explícitamente en el "resumen_ejecutivo" todas las cifras: Base Imponible, tipos de IVA/IRPF aplicados, importes de impuestos y Total a Pagar.
       2. CALCULA Y VERIFICA MATEMÁTICAMENTE: Suma la Base Imponible + Impuestos (IVA) - Retenciones (IRPF).
-      3. Compara tu resultado calculado con el Total a Pagar impreso en el documento.
+      3. Compara tu resultado calculated con el Total a Pagar impreso en el documento.
       4. SI HAY UN DESCUADRE O ERROR MATEMÁTICO, DEBES GENERAR OBLIGATORIAMENTE UN PUNTO EN "puntos_criticos_con_riesgo" CON NIVEL "🔴 CRÍTICO" USANDO ESTE FORMATO EXACTO:
          "Error Matemático / Descuadre en Total a Pagar: La suma de la Base Imponible ([importe base]) y los impuestos ([importe impuestos]) debería ser [suma calculada correcta], no [total que aparece en el documento]. Hay una diferencia de [importe descuadre]."
 
