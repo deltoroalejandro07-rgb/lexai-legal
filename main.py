@@ -123,7 +123,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
    - "puntos_criticos_con_riesgo" debe ser un array vacío [].
    - "subtipo_detectado" y "regimen_juridico_aplicable" se rellenarán como "Documento Académico / Material de Estudio" y "No aplica (Ámbito Educativo)".
    - Rellena obligatoriamente "modulo_educacion":
-     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detailed de capítulos y subapartados numerados.
+     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados.
      * "glosario": Array de 8 a 10 objetos, cada uno estrictamente con "termino" y "definicion".
      * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
 
@@ -168,7 +168,6 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
       - En sentencias/autos: fallo, cuantías, plazos y vía de recurso aplicable.
       - En nóminas: conceptos salariales, deducciones a la Seguridad Social e IRPF.
       Cada punto de riesgo DEBE clasificar su nivel estrictamente como: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
-      - ADEMÁS de todos los análisis anteriores (que debes seguir realizando completamente), si el subtipo es 'Contrato de arrendamiento de vivienda habitual' y detectas una fianza superior a 1 mensualidad de renta, añade un punto crítico adicional (SIN eliminar ningún otro punto ya detectado) con el formato: 'Fianza excesiva: [importe] equivale a [X] mensualidades, superando el límite del Art. 36.1 LAU'. Esta regla NO aplica a local comercial ni a ningún otro subtipo distinto de vivienda habitual.
 
    E. REGLA ESTRICTA DE CITAS LEGALES (VERIFICACIÓN 100%):
       - Cita artículos específicos ÚNICAMENTE si existe un 100% de certeza técnica de su aplicación exacta.
@@ -227,4 +226,3 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
- 
