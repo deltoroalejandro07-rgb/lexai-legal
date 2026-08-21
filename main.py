@@ -82,7 +82,7 @@ def index():
         return "No se ha seleccionado ningún archivo.", 400
 
     try:
-        reader = pypdf.PdfReader(file)
+        reader = pypdf.PdfReader(file, strict=False)
         num_paginas = len(reader.pages)
 
         if num_paginas > 50:
