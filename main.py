@@ -1,10 +1,7 @@
 import os
 import re
 import json
-import base64
-import io
-import gc
-import fitz  # PyMuPDF
+import pypdf
 from flask import Flask, request, render_template
 from openai import OpenAI
 
@@ -28,65 +25,29 @@ def anonimizar_texto_sensible(texto):
     return texto
 
 
-def extraer_texto_por_vision(pdf_bytes):
-    """ Convierte las páginas del PDF a imagen y las lee con el modelo de Visión de OpenAI """
-    try:
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        texto_vision = ""
-        paginas_a_procesar = min(len(doc), 3)
-
-        for i in range(paginas_a_procesar):
-            page = doc[i]
-            pix = page.get_pixmap(dpi=100)
-            img_bytes = pix.tobytes("png")
-            img_b64 = base64.b64encode(img_bytes).decode('utf-8')
-
-            pix = None
-            gc.collect()
-
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto visible en esta imagen de documento. Transcribe todo sin resumir."},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/png;base64,{img_b64}"
-                                }
-                            }
-                        ]
-                    }
-                ],
-                max_tokens=1500
-            )
-
-            texto_pagina = response.choices[0].message.content
-            if texto_pagina:
-                texto_vision += f"\n--- PÁGINA {i+1} (Visión) ---\n" + texto_pagina
-
-        doc.close()
-        gc.collect()
-        return texto_vision
-    except Exception as e:
-        print(f"Error en extracción Visión: {str(e)}")
-        return f"ERROR_VISION: {str(e)}"
-
-
 def verificar_exactitud_datos(texto_original, data_json):
+    """
+    Extrae y contrasta las cifras numéricas presentes tanto en el Resumen Ejecutivo
+    como en la Auditoría de Riesgos contra el texto original extraído del PDF.
+    """
     if not data_json or not texto_original:
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
     
+    # Concatenamos todo el texto generado por la IA donde hay datos numéricos
     texto_ia = str(data_json.get("resumen_ejecutivo", "")) + " " + json.dumps(data_json.get("puntos_criticos_con_riesgo", []))
+
+    # Regex mejorada para capturar números, importes, porcentajes y cifras decimales (formato ES y EN)
     cifras_encontradas = re.findall(r'\b\d+(?:[\.,]\d+)*(?:%|€|\$)?\b', texto_ia)
+    
+    # Filtramos cifras irrelevantes muy cortas (ej. números de página individuales si no aportan)
     cifras_filtradas = [c for c in cifras_encontradas if len(re.sub(r'\D', '', c)) > 0]
 
     if not cifras_filtradas:
         return {"score_exactitud": 100, "cifras_validadas": 0, "total_cifras_verificadas": 0}
 
+    # Normalizamos el texto original quitando espacios raros para facilitar la búsqueda de la cifra
     texto_orig_limpio = " ".join(texto_original.split())
+
     validadas = 0
     cifras_unicas = list(set(cifras_filtradas))
 
@@ -121,30 +82,17 @@ def index():
         return "No se ha seleccionado ningún archivo.", 400
 
     try:
-        pdf_bytes = file.read()
-        
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        num_paginas = len(doc)
+        reader = pypdf.PdfReader(file)
+        num_paginas = len(reader.pages)
 
         if num_paginas > 50:
-            doc.close()
             return "El documento supera el límite de 50 páginas.", 400
 
         texto_completo = ""
-        for i, page in enumerate(doc):
-            contenido = page.get_text()
+        for i, page in enumerate(reader.pages):
+            contenido = page.extract_text()
             if contenido:
                 texto_completo += f"\n--- PÁGINA {i+1} ---\n" + contenido
-        doc.close()
-
-        # Filtro estricto: contar palabras reales de castellano
-        palabras_reales = re.findall(r'\b[a-zA-ZáéíóúÁÉÍÓÚñÑ]{3,}\b', texto_completo)
-
-        # Si no hay texto nativo suficiente (menos de 150 palabras con sentido), usamos Visión
-        if len(palabras_reales) < 150:
-            texto_completo = extraer_texto_por_vision(pdf_bytes)
-            if texto_completo.startswith("ERROR_VISION:"):
-                return f"Error en procesamiento de visión: {texto_completo}", 500
 
         if not texto_completo.strip():
             return "No se pudo extraer texto del PDF.", 400
@@ -160,6 +108,7 @@ def index():
     if anonimizar:
         texto_completo = anonimizar_texto_sensible(texto_completo)
 
+    # Cálculo escalar de preguntas para educación
     num_preguntas_test = min(100, max(8, round(num_paginas / 2.2)))
 
     prompt_sistema = f"""
@@ -173,41 +122,79 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
 ================================================================================
    - "puntos_criticos_con_riesgo" debe ser un array vacío [].
    - "subtipo_detectado" y "regimen_juridico_aplicable" se rellenarán como "Documento Académico / Material de Estudio" y "No aplica (Ámbito Educativo)".
-   - Rellena OBLIGATORIAMENTE Y CON DETALLE "modulo_educacion":
-     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados basándote en el contenido real del documento.
-     * "glosario": Array de 8 a 10 objetos extraídos del texto, cada uno estrictamente con "termino" y "definicion".
-     * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación basadas en el texto con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
+   - Rellena obligatoriamente "modulo_educacion":
+     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados.
+     * "glosario": Array de 8 a 10 objetos, cada uno estrictamente con "termino" y "definicion".
+     * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
 
 ================================================================================
-2. PARA OTRAS CATEGORÍAS ("Inmobiliario / Contratos", "Legal / Judicial / Laboral", "Financiero", "General / Otros"):
+2. PARA "Inmobiliario / Contratos", "Legal / Judicial / Laboral", "Financiero" Y "General / Otros":
 ================================================================================
    - "modulo_educacion" debe quedar vacío: {{"esquema_temario": [], "glosario": [], "preguntas_tipo_test": []}}.
    
-   A. DETECCIÓN AUTOMÁTICA DE SUBTIPO Y RÉGIMEN JURÍDICO.
-   B. VERIFICACIÓN MATEMÁTICA EN FACTURAS/PRESUPUESTOS.
-   C. ANÁLISIS DE RIESGOS CLASIFICADOS EN: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
+   A. DETECCIÓN AUTOMÁTICA DE SUBTIPO:
+      Identifica el subtipo específico del documento dentro de estas opciones:
+      - Contrato de arrendamiento de vivienda habitual
+      - Contrato de arrendamiento de local comercial u otro uso distinto
+      - Contrato de compraventa de inmueble
+      - Contrato de arras o señal
+      - Contrato de préstamo o hipoteca
+      - Contrato mercantil entre empresas
+      - Contrato laboral / carta de despido / finiquito
+      - Sentencia o auto judicial
+      - Notificación o requerimiento judicial
+      - Demanda o escrito procesal
+      - Factura o presupuesto comercial
+      - Póliza de seguro
+      - Nómina o recibo de salario
+      - Otro documento (indicar cuál en el texto)
+      * Si no se identifica con claridad, indica estrictamente "Documento genérico".
+
+   B. IDENTIFICACIÓN DEL RÉGIMEN JURÍDICO APLICABLE:
+      Indica de forma precisa la normativa o ley principal que aplica al subtipo.
+      * OBLIGATORIO: La primera frase del "resumen_ejecutivo" DEBE empezar identificando expresamente este régimen jurídico para dar contexto legal inmediato.
+
+   C. VERIFICACIÓN MATEMÁTICA Y AUDITORÍA DE FACTURAS Y PRESUPUESTOS (REGLA IMPERATIVA):
+      Si el subtipo es "Factura o presupuesto comercial":
+      1. Extrae explícitamente en el "resumen_ejecutivo" todas las cifras: Base Imponible, tipos de IVA/IRPF aplicados, importes de impuestos y Total a Pagar.
+      2. CALCULA Y VERIFICA MATEMÁTICAMENTE: Suma la Base Imponible + Impuestos (IVA) - Retenciones (IRPF).
+      3. Compara tu resultado calculado con el Total a Pagar impreso en el documento.
+      4. SI HAY UN DESCUADRE O ERROR MATEMÁTICO, DEBES GENERAR OBLIGATORIAMENTE UN PUNTO EN "puntos_criticos_con_riesgo" CON NIVEL "🔴 CRÍTICO" USANDO ESTE FORMATO EXACTO:
+         "Error Matemático / Descuadre en Total a Pagar: La suma de la Base Imponible ([importe base]) y los impuestos ([importe impuestos]) debería ser [suma calculada correcta], no [total que aparece en el documento]. Hay una diferencia de [importe descuadre]."
+
+   D. ADAPTACIÓN DEL ANÁLISIS DE RIESGOS EN OTROS SUBTIPOS:
+      - En contratos de alquiler: fianzas, garantías, actualización de renta, duración, conservación y gastos.
+      - En contratos laborales / finiquitos: causa de despido, indemnización, preaviso, horas extra, devengos.
+      - En sentencias/autos: fallo, cuantías, plazos y vía de recurso aplicable.
+      - En nóminas: conceptos salariales, deducciones a la Seguridad Social e IRPF.
+      Cada punto de riesgo DEBE clasificar su nivel estrictamente como: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
+
+   E. REGLA ESTRICTA DE CITAS LEGALES (VERIFICACIÓN 100%):
+      - Cita artículos específicos ÚNICAMENTE si existe un 100% de certeza técnica de su aplicación exacta.
+      - Si existe la menor duda sobre el número exacto del artículo o su redacción en el texto del documento, sustituye la cita por el texto explícito: "verificar normativa aplicable".
+      - NUNCA inventes o deduzcas números de artículos o leyes.
 
 ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
 {{
   "categoria_documento": "{categoria_seleccionada}",
   "tipo_documento": "Categoría general o clase de documento",
-  "subtipo_detectado": "Subtipo específico identificado",
-  "regimen_juridico_aplicable": "Marco legal o 'No aplica (Ámbito Educativo)'",
-  "resumen_ejecutivo": "Análisis exhaustivo detallando todos los conceptos, temas o importes principales.",
-  "puntos_criticos_con_riesgo": [],
+  "subtipo_detectado": "Subtipo específico identificado entre los 14 especificados",
+  "regimen_juridico_aplicable": "Marco legal principal aplicable",
+  "resumen_ejecutivo": "Empezar obligatoriamente indicando el régimen jurídico aplicable. Luego continuar con el análisis exhaustivo detallando todos los datos e importes principales.",
+  "puntos_criticos_con_riesgo": [
+    {{
+      "nivel": "🔴 CRÍTICO",
+      "pagina": "Página X",
+      "punto": "Descripción detallada del riesgo o del error matemático con las cifras exactas",
+      "contraste_estandar": "Normativa fiscal/comercial o 'verificar normativa aplicable'"
+    }}
+  ],
   "modulo_educacion": {{
-    "esquema_temario": ["1. Título principal", "1.1 Subapartado..."],
-    "glosario": [{{"termino": "Ejemplo", "definicion": "Explicación detallada"}}],
-    "preguntas_tipo_test": [
-      {{
-        "pregunta": "¿...?",
-        "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."],
-        "respuesta_correcta": "A",
-        "explicacion": "Explicación basada en el texto"
-      }}
-    ]
+    "esquema_temario": [],
+    "glosario": [],
+    "preguntas_tipo_test": []
   }},
-  "salida_accionable": "Recomendaciones concretas de estudio o actuación.",
+  "salida_accionable": "Recomendaciones estratégicas concretas adaptadas al subtipo (ej. solicitar factura rectificativa por error en total, negociación de cláusulas, interposición de recurso, etc.).",
   "disclaimer": "Informe generado por Inteligencia Artificial para uso profesional e informativo."
 }}
 """
@@ -226,6 +213,7 @@ ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
         json_raw = response.choices[0].message.content
         data = json.loads(json_raw)
 
+        # Se realiza la auditoría de cifras incluyendo tanto el resumen como la tabla de riesgos
         exactitud = verificar_exactitud_datos(texto_completo, data)
         data["verificacion_exactitud"] = exactitud
 
