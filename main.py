@@ -4,7 +4,7 @@ import json
 import base64
 import io
 import gc
-import fitz  # PyMuPDF (mucho más preciso leyendo texto)
+import fitz  # PyMuPDF
 from flask import Flask, request, render_template
 from openai import OpenAI
 
@@ -49,7 +49,7 @@ def extraer_texto_ocr_vision(pdf_bytes):
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto de esta imagen de un documento. No resumas, transcribe todo el texto visible."},
+                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto de esta imagen. Transcribe todo el texto visible sin resumir."},
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -122,7 +122,6 @@ def index():
     try:
         pdf_bytes = file.read()
         
-        # Extracción primaria con PyMuPDF (fitz)
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         num_paginas = len(doc)
 
@@ -138,8 +137,11 @@ def index():
         
         doc.close()
 
-        # Si el texto extraído es demasiado corto (menos de 100 caracteres), activamos Vision por IA
-        if len(texto_completo.strip()) < 100:
+        # Contamos las palabras reales extraídas (secuencias alfanuméricas)
+        palabras_reales = re.findall(r'\b\w+\b', texto_completo)
+
+        # Si hay menos de 30 palabras reales, se considera escáner/imagen y activamos Vision
+        if len(palabras_reales) < 30:
             texto_ocr_res = extraer_texto_ocr_vision(pdf_bytes)
             if texto_ocr_res.startswith("ERROR_VISION:"):
                 return f"Error en Vision OCR: {texto_ocr_res}", 500
@@ -174,7 +176,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
    - "subtipo_detectado" y "regimen_juridico_aplicable" se rellenarán como "Documento Académico / Material de Estudio" y "No aplica (Ámbito Educativo)".
    - Rellena obligatoriamente "modulo_educacion":
      * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados.
-     * "glosario": Array de 8 a 10 objetos, cada uno estrictamente con "termino" y "definicion".
+     * "glosario": Array de 8 a 10 objetos, cada uno strictly con "termino" y "definicion".
      * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
 
 ================================================================================
