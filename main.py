@@ -4,8 +4,7 @@ import json
 import base64
 import io
 import gc
-import pypdf
-import fitz  # PyMuPDF
+import fitz  # PyMuPDF (mucho más preciso leyendo texto)
 from flask import Flask, request, render_template
 from openai import OpenAI
 
@@ -30,25 +29,17 @@ def anonimizar_texto_sensible(texto):
 
 
 def extraer_texto_ocr_vision(pdf_bytes):
-    """
-    Procesa únicamente las 3 primeras páginas a resolución reducida (dpi=100)
-    para evitar saturar la memoria RAM de Render.
-    """
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         texto_ocr = ""
-
-        # Limitamos a un máximo de 3 páginas para evitar Timeouts / Out of Memory
         paginas_a_procesar = min(len(doc), 3)
 
         for i in range(paginas_a_procesar):
             page = doc[i]
-            # dpi=100 reduce drásticamente el uso de memoria RAM
             pix = page.get_pixmap(dpi=100)
             img_bytes = pix.tobytes("png")
             img_b64 = base64.b64encode(img_bytes).decode('utf-8')
 
-            # Liberamos memoria de la imagen intermedia inmediatamente
             pix = None
             gc.collect()
 
@@ -58,7 +49,7 @@ def extraer_texto_ocr_vision(pdf_bytes):
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto de esta imagen. Transcribe todo el texto visible sin resumir."},
+                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto de esta imagen de un documento. No resumas, transcribe todo el texto visible."},
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -130,22 +121,25 @@ def index():
 
     try:
         pdf_bytes = file.read()
-        file_stream = io.BytesIO(pdf_bytes)
-
-        reader = pypdf.PdfReader(file_stream)
-        num_paginas = len(reader.pages)
+        
+        # Extracción primaria con PyMuPDF (fitz)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        num_paginas = len(doc)
 
         if num_paginas > 50:
+            doc.close()
             return "El documento supera el límite de 50 páginas.", 400
 
         texto_completo = ""
-        for i, page in enumerate(reader.pages):
-            contenido = page.extract_text()
+        for i, page in enumerate(doc):
+            contenido = page.get_text()
             if contenido:
                 texto_completo += f"\n--- PÁGINA {i+1} ---\n" + contenido
+        
+        doc.close()
 
-        # FALLBACK SI ES UN PDF ESCANEADO / IMAGEN
-        if not texto_completo.strip():
+        # Si el texto extraído es demasiado corto (menos de 100 caracteres), activamos Vision por IA
+        if len(texto_completo.strip()) < 100:
             texto_ocr_res = extraer_texto_ocr_vision(pdf_bytes)
             if texto_ocr_res.startswith("ERROR_VISION:"):
                 return f"Error en Vision OCR: {texto_ocr_res}", 500
@@ -227,7 +221,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
 
    E. REGLA ESTRICTA DE CITAS LEGALES (VERIFICACIÓN 100%):
       - Cita artículos específicos ÚNICAMENTE si existe un 100% de certeza técnica de su aplicación exacta.
-      - Si existe la menor doubt sobre el número exacto del artículo o su redacción en el texto del documento, sustituye la cita por el texto explícito: "verificar normativa aplicable".
+      - Si existe la menor duda sobre el número exacto del artículo o su redacción en el texto del documento, sustituye la cita por el texto explícito: "verificar normativa aplicable".
       - NUNCA inventes o deduzcas números de artículos o leyes.
 
 ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
