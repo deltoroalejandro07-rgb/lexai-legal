@@ -2,6 +2,7 @@ import os
 import re
 import json
 import base64
+import io
 import gc
 import fitz  # PyMuPDF
 from flask import Flask, request, render_template
@@ -32,12 +33,11 @@ def extraer_texto_por_vision(pdf_bytes):
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         texto_vision = ""
-        # Procesamos hasta un máximo de 5 páginas para asegurar lectura sin exceder tiempos
-        paginas_a_procesar = min(len(doc), 5)
+        paginas_a_procesar = min(len(doc), 3)
 
         for i in range(paginas_a_procesar):
             page = doc[i]
-            pix = page.get_pixmap(dpi=120)
+            pix = page.get_pixmap(dpi=100)
             img_bytes = pix.tobytes("png")
             img_b64 = base64.b64encode(img_bytes).decode('utf-8')
 
@@ -50,7 +50,7 @@ def extraer_texto_por_vision(pdf_bytes):
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto visible en esta imagen. Transcribe todo sin omitir títulos, listas ni tablas."},
+                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto visible en esta imagen de documento. Transcribe todo sin resumir."},
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -65,7 +65,7 @@ def extraer_texto_por_vision(pdf_bytes):
 
             texto_pagina = response.choices[0].message.content
             if texto_pagina:
-                texto_vision += f"\n--- PÁGINA {i+1} ---\n" + texto_pagina
+                texto_vision += f"\n--- PÁGINA {i+1} (Visión) ---\n" + texto_pagina
 
         doc.close()
         gc.collect()
@@ -123,7 +123,6 @@ def index():
     try:
         pdf_bytes = file.read()
         
-        # 1. Intentar extracción por texto directo
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         num_paginas = len(doc)
 
@@ -138,16 +137,17 @@ def index():
                 texto_completo += f"\n--- PÁGINA {i+1} ---\n" + contenido
         doc.close()
 
-        # 2. SIEMPRE usar Visión por IA si el texto tiene menos de 150 palabras con sentido
+        # Filtro estricto: contar palabras reales de castellano
         palabras_reales = re.findall(r'\b[a-zA-ZáéíóúÁÉÍÓÚñÑ]{3,}\b', texto_completo)
 
+        # Si no hay texto nativo suficiente (menos de 150 palabras con sentido), usamos Visión
         if len(palabras_reales) < 150:
             texto_completo = extraer_texto_por_vision(pdf_bytes)
             if texto_completo.startswith("ERROR_VISION:"):
                 return f"Error en procesamiento de visión: {texto_completo}", 500
 
         if not texto_completo.strip():
-            return "No se pudo extraer texto del PDF (el archivo podría estar en blanco o dañado).", 400
+            return "No se pudo extraer texto del PDF.", 400
 
         texto_completo = texto_completo[:50000]
 
@@ -175,7 +175,7 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
    - "subtipo_detectado" y "regimen_juridico_aplicable" se rellenarán como "Documento Académico / Material de Estudio" y "No aplica (Ámbito Educativo)".
    - Rellena OBLIGATORIAMENTE Y CON DETALLE "modulo_educacion":
      * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados basándote en el contenido real del documento.
-     * "glosario": Array de 8 a 10 objetos extraídos del texto, cada uno strictly con "termino" y "definicion".
+     * "glosario": Array de 8 a 10 objetos extraídos del texto, cada uno estrictamente con "termino" y "definicion".
      * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación basadas en el texto con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
 
 ================================================================================
