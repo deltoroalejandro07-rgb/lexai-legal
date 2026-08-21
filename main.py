@@ -2,7 +2,6 @@ import os
 import re
 import json
 import base64
-import io
 import gc
 import fitz  # PyMuPDF
 from flask import Flask, request, render_template
@@ -28,15 +27,17 @@ def anonimizar_texto_sensible(texto):
     return texto
 
 
-def extraer_texto_ocr_vision(pdf_bytes):
+def extraer_texto_por_vision(pdf_bytes):
+    """ Convierte las páginas del PDF a imagen y las lee con el modelo de Visión de OpenAI """
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        texto_ocr = ""
-        paginas_a_procesar = min(len(doc), 3)
+        texto_vision = ""
+        # Procesamos hasta un máximo de 5 páginas para asegurar lectura sin exceder tiempos
+        paginas_a_procesar = min(len(doc), 5)
 
         for i in range(paginas_a_procesar):
             page = doc[i]
-            pix = page.get_pixmap(dpi=100)
+            pix = page.get_pixmap(dpi=120)
             img_bytes = pix.tobytes("png")
             img_b64 = base64.b64encode(img_bytes).decode('utf-8')
 
@@ -49,7 +50,7 @@ def extraer_texto_ocr_vision(pdf_bytes):
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto de esta imagen. Transcribe todo el texto visible sin resumir."},
+                            {"type": "text", "text": "Transcripción literal completa y precisa de todo el texto visible en esta imagen. Transcribe todo sin omitir títulos, listas ni tablas."},
                             {
                                 "type": "image_url",
                                 "image_url": {
@@ -64,13 +65,13 @@ def extraer_texto_ocr_vision(pdf_bytes):
 
             texto_pagina = response.choices[0].message.content
             if texto_pagina:
-                texto_ocr += f"\n--- PÁGINA {i+1} (OCR Vision) ---\n" + texto_pagina
+                texto_vision += f"\n--- PÁGINA {i+1} ---\n" + texto_pagina
 
         doc.close()
         gc.collect()
-        return texto_ocr
+        return texto_vision
     except Exception as e:
-        print(f"Error en extracción OCR con Vision: {str(e)}")
+        print(f"Error en extracción Visión: {str(e)}")
         return f"ERROR_VISION: {str(e)}"
 
 
@@ -122,6 +123,7 @@ def index():
     try:
         pdf_bytes = file.read()
         
+        # 1. Intentar extracción por texto directo
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         num_paginas = len(doc)
 
@@ -134,18 +136,15 @@ def index():
             contenido = page.get_text()
             if contenido:
                 texto_completo += f"\n--- PÁGINA {i+1} ---\n" + contenido
-        
         doc.close()
 
-        # Contamos las palabras reales extraídas (secuencias alfanuméricas)
-        palabras_reales = re.findall(r'\b\w+\b', texto_completo)
+        # 2. SIEMPRE usar Visión por IA si el texto tiene menos de 150 palabras con sentido
+        palabras_reales = re.findall(r'\b[a-zA-ZáéíóúÁÉÍÓÚñÑ]{3,}\b', texto_completo)
 
-        # Si hay menos de 30 palabras reales, se considera escáner/imagen y activamos Vision
-        if len(palabras_reales) < 30:
-            texto_ocr_res = extraer_texto_ocr_vision(pdf_bytes)
-            if texto_ocr_res.startswith("ERROR_VISION:"):
-                return f"Error en Vision OCR: {texto_ocr_res}", 500
-            texto_completo = texto_ocr_res
+        if len(palabras_reales) < 150:
+            texto_completo = extraer_texto_por_vision(pdf_bytes)
+            if texto_completo.startswith("ERROR_VISION:"):
+                return f"Error en procesamiento de visión: {texto_completo}", 500
 
         if not texto_completo.strip():
             return "No se pudo extraer texto del PDF (el archivo podría estar en blanco o dañado).", 400
@@ -174,79 +173,41 @@ REGLAS DE GENERACIÓN SEGÚN CATEGORÍA:
 ================================================================================
    - "puntos_criticos_con_riesgo" debe ser un array vacío [].
    - "subtipo_detectado" y "regimen_juridico_aplicable" se rellenarán como "Documento Académico / Material de Estudio" y "No aplica (Ámbito Educativo)".
-   - Rellena obligatoriamente "modulo_educacion":
-     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados.
-     * "glosario": Array de 8 a 10 objetos, cada uno strictly con "termino" y "definicion".
-     * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
+   - Rellena OBLIGATORIAMENTE Y CON DETALLE "modulo_educacion":
+     * "esquema_temario": Array de cadenas de texto (strings) con la lista jerárquica y detallada de capítulos y subapartados numerados basándote en el contenido real del documento.
+     * "glosario": Array de 8 a 10 objetos extraídos del texto, cada uno strictly con "termino" y "definicion".
+     * "preguntas_tipo_test": Genera OBLIGATORIAMENTE {num_preguntas_test} preguntas de autoevaluación basadas en el texto con sus 4 opciones (A, B, C, D), letra de respuesta correcta y explicación.
 
 ================================================================================
-2. PARA "Inmobiliario / Contratos", "Legal / Judicial / Laboral", "Financiero" Y "General / Otros":
+2. PARA OTRAS CATEGORÍAS ("Inmobiliario / Contratos", "Legal / Judicial / Laboral", "Financiero", "General / Otros"):
 ================================================================================
    - "modulo_educacion" debe quedar vacío: {{"esquema_temario": [], "glosario": [], "preguntas_tipo_test": []}}.
    
-   A. DETECCIÓN AUTOMÁTICA DE SUBTIPO:
-      Identifica el subtipo específico del documento dentro de estas opciones:
-      - Contrato de arrendamiento de vivienda habitual
-      - Contrato de arrendamiento de local comercial u otro uso distinto
-      - Contrato de compraventa de inmueble
-      - Contrato de arras o señal
-      - Contrato de préstamo o hipoteca
-      - Contrato mercantil entre empresas
-      - Contrato laboral / carta de despido / finiquito
-      - Sentencia o auto judicial
-      - Notificación o requerimiento judicial
-      - Demanda o escrito procesal
-      - Factura o presupuesto comercial
-      - Póliza de seguro
-      - Nómina o recibo de salario
-      - Otro documento (indicar cuál en el texto)
-      * Si no se identifica con claridad, indica estrictamente "Documento genérico".
-
-   B. IDENTIFICACIÓN DEL RÉGIMEN JURÍDICO APLICABLE:
-      Indica de forma precisa la normativa o ley principal que aplica al subtipo.
-      * OBLIGATORIO: La primera frase del "resumen_ejecutivo" DEBE empezar identificando expresamente este régimen jurídico para dar contexto legal inmediato.
-
-   C. VERIFICACIÓN MATEMÁTICA Y AUDITORÍA DE FACTURAS Y PRESUPUESTOS (REGLA IMPERATIVA):
-      Si el subtipo es "Factura o presupuesto comercial":
-      1. Extrae explícitamente en el "resumen_ejecutivo" todas las cifras: Base Imponible, tipos de IVA/IRPF aplicados, importes de impuestos y Total a Pagar.
-      2. CALCULA Y VERIFICA MATEMÁTICAMENTE: Suma la Base Imponible + Impuestos (IVA) - Retenciones (IRPF).
-      3. Compara tu resultado calculado con el Total a Pagar impreso en el documento.
-      4. SI HAY UN DESCUADRE O ERROR MATEMÁTICO, DEBES GENERAR OBLIGATORIAMENTE UN PUNTO EN "puntos_criticos_con_riesgo" CON NIVEL "🔴 CRÍTICO" USANDO ESTE FORMATO EXACTO:
-         "Error Matemático / Descuadre en Total a Pagar: La suma de la Base Imponible ([importe base]) y los impuestos ([importe impuestos]) debería ser [suma calculada correcta], no [total que aparece en el documento]. Hay una diferencia de [importe descuadre]."
-
-   D. ADAPTACIÓN DEL ANÁLISIS DE RIESGOS EN OTROS SUBTIPOS:
-      - En contratos de alquiler: fianzas, garantías, actualización de renta, duración, conservación y gastos.
-      - En contratos laborales / finiquitos: causa de despido, indemnización, preaviso, horas extra, devengos.
-      - En sentencias/autos: fallo, cuantías, plazos y vía de recurso aplicable.
-      - En nóminas: conceptos salariales, deducciones a la Seguridad Social e IRPF.
-      Cada punto de riesgo DEBE clasificar su nivel estrictamente como: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
-
-   E. REGLA ESTRICTA DE CITAS LEGALES (VERIFICACIÓN 100%):
-      - Cita artículos específicos ÚNICAMENTE si existe un 100% de certeza técnica de su aplicación exacta.
-      - Si existe la menor duda sobre el número exacto del artículo o su redacción en el texto del documento, sustituye la cita por el texto explícito: "verificar normativa aplicable".
-      - NUNCA inventes o deduzcas números de artículos o leyes.
+   A. DETECCIÓN AUTOMÁTICA DE SUBTIPO Y RÉGIMEN JURÍDICO.
+   B. VERIFICACIÓN MATEMÁTICA EN FACTURAS/PRESUPUESTOS.
+   C. ANÁLISIS DE RIESGOS CLASIFICADOS EN: "🔴 CRÍTICO", "🟡 ATENCIÓN", o "🔵 INFORMATIVO".
 
 ESTRUCTURA JSON OBLIGATORIA DE RESPUESTA:
 {{
   "categoria_documento": "{categoria_seleccionada}",
   "tipo_documento": "Categoría general o clase de documento",
-  "subtipo_detectado": "Subtipo específico identificado entre los 14 especificados",
-  "regimen_juridico_aplicable": "Marco legal principal aplicable",
-  "resumen_ejecutivo": "Empezar obligatoriamente indicando el régimen jurídico aplicable. Luego continuar con el análisis exhaustivo detallando todos los datos e importes principales.",
-  "puntos_criticos_con_riesgo": [
-    {{
-      "nivel": "🔴 CRÍTICO",
-      "pagina": "Página X",
-      "punto": "Descripción detallada del riesgo o del error matemático con las cifras exactas",
-      "contraste_estandar": "Normativa fiscal/comercial o 'verificar normativa aplicable'"
-    }}
-  ],
+  "subtipo_detectado": "Subtipo específico identificado",
+  "regimen_juridico_aplicable": "Marco legal o 'No aplica (Ámbito Educativo)'",
+  "resumen_ejecutivo": "Análisis exhaustivo detallando todos los conceptos, temas o importes principales.",
+  "puntos_criticos_con_riesgo": [],
   "modulo_educacion": {{
-    "esquema_temario": [],
-    "glosario": [],
-    "preguntas_tipo_test": []
+    "esquema_temario": ["1. Título principal", "1.1 Subapartado..."],
+    "glosario": [{{"termino": "Ejemplo", "definicion": "Explicación detallada"}}],
+    "preguntas_tipo_test": [
+      {{
+        "pregunta": "¿...?",
+        "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."],
+        "respuesta_correcta": "A",
+        "explicacion": "Explicación basada en el texto"
+      }}
+    ]
   }},
-  "salida_accionable": "Recomendaciones estratégicas concretas adaptadas al subtipo (ej. solicitar factura rectificativa por error en total, negociación de cláusulas, interposición de recurso, etc.).",
+  "salida_accionable": "Recomendaciones concretas de estudio o actuación.",
   "disclaimer": "Informe generado por Inteligencia Artificial para uso profesional e informativo."
 }}
 """
