@@ -95,7 +95,30 @@ def index():
                 texto_completo += f"\n--- PÁGINA {i+1} ---\n" + contenido
 
         if not texto_completo.strip():
-            return "No se pudo extraer texto del PDF.", 400
+            return """
+            <html>
+            <head><title>LexAI - Documento no procesable</title></head>
+            <body style="font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 30px; background: #f8f9fa; border-radius: 10px; text-align: center;">
+                <h2 style="color: #1a3a5f;">📄 Documento no procesable</h2>
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                    El PDF que has subido parece ser un <strong>documento escaneado</strong> 
+                    (una imagen, no un texto seleccionable).
+                </p>
+                <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                    Actualmente, LexAI solo procesa PDFs con texto seleccionable. 
+                    Por favor, sube la versión digital del documento.
+                </p>
+                <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                    <strong>Truco:</strong> si tienes solo la versión escaneada, puedes usar herramientas 
+                    gratuitas como <a href="https://www.ilovepdf.com/es/ocr-pdf" target="_blank">iLovePDF OCR</a> 
+                    para convertir tu escaneado en un PDF con texto seleccionable.
+                </p>
+                <a href="/" style="display: inline-block; margin-top: 20px; padding: 12px 30px; background: #1a3a5f; color: white; text-decoration: none; border-radius: 5px;">
+                    ← Volver a intentarlo
+                </a>
+            </body>
+            </html>
+            """, 400
 
         texto_completo = texto_completo[:50000]
 
