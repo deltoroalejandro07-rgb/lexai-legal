@@ -93,7 +93,8 @@ def index():
             contenido = page.extract_text()
             if contenido:
                 texto_completo += f"\n--- PÁGINA {i+1} ---\n" + contenido
-
+# Limpiar caracteres nulos y no imprimibles que generan los OCR externos
+        texto_completo = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', texto_completo)
         if not texto_completo.strip():
             return """
             <html>
